@@ -49,12 +49,11 @@ The backend is currently under construction and will be integrated soon. For now
 ```bash
 .
 ├── src
-│   ├── components # Reusable UI components
-│   ├── pages      # Application pages
-│   ├── assets     # Images, icons, etc.
-│   └── styles     # Global styles and Tailwind configurations
-├── public         # Static files
+│   ├── components    
+│   ├── assets     
+├── public         
 └── README.md
+├── backend
 ```
 
 ## Technologies Used
@@ -66,8 +65,6 @@ The backend is currently under construction and will be integrated soon. For now
 - **Backend:**
   - Backend is under development.
 
-## Contributing
-If you'd like to contribute to this project, feel free to open a pull request or issue.
 
 
 ## Contact
