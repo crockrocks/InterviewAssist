@@ -68,7 +68,7 @@ The backend is currently under construction and will be integrated soon. For now
 
 
 ## Contact
-If you have any questions or suggestions, feel free to contact us at [email@example.com](mailto:harshpant3703@gmail.com).
+If you have any questions or suggestions, feel free to contact us at [harshpant3703@gmail.com](mailto:harshpant3703@gmail.com).
 
 ---
 
