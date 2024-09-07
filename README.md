@@ -39,7 +39,7 @@ Automating the entire interview process.
    npm run dev
    ```
 
-   The application will now be running at `http://localhost:3000` (or another port if configured).
+   The application will now be running at `http://localhost:5174` (or another port if configured).
 
 ## Backend
 The backend is currently under construction and will be integrated soon. For now, you can explore the front-end.
