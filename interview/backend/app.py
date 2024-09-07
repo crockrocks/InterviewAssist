@@ -12,8 +12,8 @@ UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# MongoDB setup
-client = MongoClient("mongodb+srv://anubhajarwal2003:b%40dminton2%21@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
+
+client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
 users_collection = db['candidate']
 employee_collection = db['employee']

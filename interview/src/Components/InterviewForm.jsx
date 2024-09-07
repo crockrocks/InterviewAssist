@@ -23,7 +23,7 @@ function InterviewForm({ darkMode }) {
       formData.append('resume', file);
 
       try {
-        const response = await axios.post('/api/parse-resume', formData, {
+        const response = await axios.post('http://127.0.0.1:5000/api/parse-resume', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
 
@@ -60,7 +60,7 @@ function InterviewForm({ darkMode }) {
     formData.append('experience', experience);
 
     try {
-      const response = await axios.post('/api/submit-interview', formData, {
+      const response = await axios.post('http://127.0.0.1:5000/api/submit-interview', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.data.success) {
