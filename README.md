@@ -1,4 +1,4 @@
-Here’s a template for your `README.md` file with the basic sections and content:
+
 
 ---
 
