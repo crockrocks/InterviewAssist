@@ -1,57 +1,83 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-function LoginForm({ onLoginSuccess }) {
+function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+
+  const toggleForm = () => {
+    setIsLogin(!isLogin);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const testUser = {
       email: 'test@example.com',
-      password: 'test'
+      password: 'test',
     };
 
-    if (email === testUser.email && password === testUser.password) {
-      onLoginSuccess();
-      return;
-    }
+    const altUser = {
+      email: 'client@example.com',
+      password: 'client',
+    };
 
-    try {
-      const response = await axios.post('/api/login', { email, password });
-      if (response.data.success) {
+    if (isLogin) {
+      if (email === testUser.email && password === testUser.password) {
         onLoginSuccess();
-      } else {
+        return;
+      } else if (email === altUser.email && password === altUser.password) {
+        onAlternateLoginSuccess();
+        return;
+      }
+
+      try {
+        const response = await axios.post('http://127.0.0.1:5000/api/login', { email, password });
+        if (response.data.success) {
+          onLoginSuccess();
+        } else {
+          alert('Login failed');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
         alert('Login failed');
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed');
+    } else {
+      try {
+        const response = await axios.post('http://127.0.0.1:5000/api/register', { email, password });
+        if (response.data.success) {
+          onLoginSuccess();
+        } else {
+          alert('Sign-up failed');
+        }
+      } catch (error) {
+        console.error('Sign-up error:', error);
+        alert('Sign-up failed');
+      }
     }
   };
 
   return (
-    <section className="bg-gray-900 min-h-screen">
+    <section className={`${darkMode ? 'bg-dark-background' : 'bg-light-background'} min-h-screen`}>
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto min-h-screen lg:py-0">
-        <a href="#" className="flex items-center mb-6 text-2xl font-semibold text-white">
-          <img className="w-8 h-8 mr-2" src="/api/placeholder/32/32" alt="logo" />
+        <a href="#" className={`flex items-center mb-6 text-2xl font-semibold ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>
           Interview
         </a>
-        <div className="w-full bg-gray-800 rounded-lg shadow border border-gray-700 md:mt-0 sm:max-w-md xl:p-0">
+        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'} w-full rounded-lg shadow border md:mt-0 sm:max-w-md xl:p-0`}>
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-            <h1 className="text-xl font-bold leading-tight tracking-tight text-white md:text-2xl">
-              Sign in to your account
+            <h1 className={`${darkMode ? 'text-dark-text' : 'text-light-text'} text-xl font-bold leading-tight tracking-tight md:text-2xl`}>
+              {isLogin ? 'Sign in to your account' : 'Create a new account'}
             </h1>
             <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="email" className="block mb-2 text-sm font-medium text-white">Your email</label>
+                <label htmlFor="email" className={`block mb-2 text-sm font-medium ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Your email</label>
                 <input
                   type="email"
                   name="email"
                   id="email"
-                  className="bg-gray-700 border border-gray-600 text-white sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                  className={`${darkMode ? 'bg-gray-700 border-gray-600 text-dark-text' : 'bg-gray-200 border-gray-400 text-light-text'} sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
                   placeholder="name@company.com"
                   required
                   value={email}
@@ -59,44 +85,49 @@ function LoginForm({ onLoginSuccess }) {
                 />
               </div>
               <div>
-                <label htmlFor="password" className="block mb-2 text-sm font-medium text-white">Password</label>
+                <label htmlFor="password" className={`block mb-2 text-sm font-medium ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Password</label>
                 <input
                   type="password"
                   name="password"
                   id="password"
                   placeholder="••••••••"
-                  className="bg-gray-700 border border-gray-600 text-white sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                  className={`${darkMode ? 'bg-gray-700 border-gray-600 text-dark-text' : 'bg-gray-200 border-gray-400 text-light-text'} sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-start">
-                  <div className="flex items-center h-5">
-                    <input
-                      id="remember"
-                      aria-describedby="remember"
-                      type="checkbox"
-                      className="w-4 h-4 border border-gray-600 rounded bg-gray-700 focus:ring-3 focus:ring-blue-600"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                    />
+              {isLogin && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start">
+                    <div className="flex items-center h-5">
+                      <input
+                        id="remember"
+                        aria-describedby="remember"
+                        type="checkbox"
+                        className="w-4 h-4 border border-gray-600 rounded bg-gray-700 focus:ring-3 focus:ring-blue-600"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                      />
+                    </div>
+                    <div className="ml-3 text-sm">
+                      <label htmlFor="remember" className={`${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Remember me</label>
+                    </div>
                   </div>
-                  <div className="ml-3 text-sm">
-                    <label htmlFor="remember" className="text-gray-300">Remember me</label>
-                  </div>
+                  <a href="#" className="text-sm font-medium text-blue-500 hover:underline">Forgot password?</a>
                 </div>
-                <a href="#" className="text-sm font-medium text-blue-500 hover:underline">Forgot password?</a>
-              </div>
+              )}
               <button
                 type="submit"
                 className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
               >
-                Sign in
+                {isLogin ? 'Sign in' : 'Sign up'}
               </button>
-              <p className="text-sm font-light text-gray-400">
-                Don't have an account yet? <a href="#" className="font-medium text-blue-500 hover:underline">Sign up</a>
+              <p className={`text-sm font-light ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {isLogin ? "Don't have an account yet?" : 'Already have an account?'}{' '}
+                <button type="button" onClick={toggleForm} className="font-medium text-blue-500 hover:underline">
+                  {isLogin ? 'Sign up' : 'Sign in'}
+                </button>
               </p>
             </form>
           </div>
@@ -104,6 +135,6 @@ function LoginForm({ onLoginSuccess }) {
       </div>
     </section>
   );
-};
+}
 
 export default LoginForm;
