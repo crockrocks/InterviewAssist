@@ -1,0 +1,52 @@
+Name:
+Harsh Pant
+
+Phone:
++91 9910222161
+
+Email:
+harshpant3703@gmail.com
+
+Linkedin:
+linkedin.com/in/harsh-pant2003
+
+Skills:
+Programming Languages: Python, JavaScript, HTML/CSS, LaTeX
+Developer Tools: Git, Docker, Vercel, Jupyter Notebook, Visual Studio Code
+Technologies/Frameworks: TensorFlow, Keras, PyTorch, Streamlit, ComfyUI, Automatic1111, Flask, React, Hugging Face
+Transformers
+Machine Learning: Neural Networks, Computer Vision, Natural Language Processing (NLP), Clustering, Regression, Classification,
+Transfer Learning
+
+Experience:
+PharynxAI
+June 2024 – Present
+• Junior AI/ML Engineer, Designed Generative AI workflows using ComfyUI, enhancing tasks such as cloth inpainting, image
+upscaling, and video creation, leading to a 20% increase in processing efficiency.
+• Refined open-source projects by optimizing code, integrating state-of-the-art models, and implementing solutions on platforms
+like Runpod and Hugging Face, reducing deployment time by 30%.
+Deepmindz Innovations
+Jan 2024 – June 2024
+• AI/ML Intern,Contributed to developing and optimizing Generative AI workflows using ComfyUI and Automatic 1111, which
+improved image generation and upscaling quality.
+• Fine-tuned advanced AI models, enhancing their performance by 15% in various testing scenarios.
+Hamoye
+Nov 2022 – Feb 2023
+• Led a team of 5 at Hamoye, achieving top placement among 10 teams by meeting all project deadlines.
+• Orchestrated workflow processes to ensure timely completion and effective coordination among team members.
+KEY CONTRIBUTIONS
+• Engineered and implemented Generative AI workflows at PharynxAI, which expanded the organization’s capabilities in image and
+video generation.
+• Enhanced the performance of open-source models and solutions at Deepmindz Innovations, focusing on the integration of advanced
+models, resulting in a 20% improvement in efficiency.
+• Led projects at Hamoye that received top placement, demonstrating strong leadership and project management
+
+Certifications:
+: Build a NLP Solution using Azure (Microsoft), MIcrosoft AI
+
+Education:
+Gautam Buddha University
+Bachelor of Technology in Artificial Intelligence
+Sept. 2021 – July 2025
+Greater Noida, Uttar Pradesh
+
