@@ -2,3 +2,6 @@ Flask
 flask_cors
 pymongo
 pymupdf
+langchain
+langcahin_groq
+python-dotenv
