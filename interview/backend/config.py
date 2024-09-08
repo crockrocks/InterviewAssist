@@ -67,24 +67,140 @@ Here is the description to determine what each key represents:
 '''
 
 
-    FEW_SHOT_EXAMPLE_1 = [
-        {
-            "$match": {
-                "name": {"$regex": "Harshit", "$options": "i"}
-            }
-        },
-        {
-            "$project": {
-                "_id": 1,
-                "name": 1,
-                "email": 1,
-                "phone": 1,
-                "position": 1,
-                "coverLetter": 1,
-                "skills": 1,
-                "experience": 1,
-                "resume_filename": 1,
-                "parsed_data": 1
-            }
-        }
-    ]
+    FEW_SHOT_EXAMPLE_1 = {
+        "input": """
+        John Doe
+        Email: john.doe@email.com | Phone: (123) 456-7890 | LinkedIn: linkedin.com/in/johndoe
+
+        Summary:
+        Experienced software engineer with 5+ years in full-stack development, specializing in Python and JavaScript frameworks.
+
+        Skills:
+        - Programming: Python, JavaScript, Java, C++
+        - Web Technologies: React, Node.js, Django, Flask
+        - Databases: MongoDB, PostgreSQL, MySQL
+        - DevOps: Docker, Kubernetes, AWS
+
+        Experience:
+        Senior Software Engineer | TechCorp Inc. | 2018 - Present
+        - Led development of a scalable e-commerce platform using Django and React
+        - Implemented CI/CD pipelines, reducing deployment time by 40%
+
+        Software Developer | InnoSoft Solutions | 2016 - 2018
+        - Developed RESTful APIs using Flask and integrated with front-end applications
+        - Optimized database queries, improving application performance by 30%
+
+        Education:
+        Bachelor of Science in Computer Science | University of Technology | 2012 - 2016
+
+        Certifications:
+        - AWS Certified Developer - Associate
+        - MongoDB Certified Developer
+        """,
+        "output": """
+        Summary of John Doe's Resume:
+
+        1. Contact Information:
+           - Name: John Doe
+           - Email: john.doe@email.com
+           - Phone: (123) 456-7890
+           - LinkedIn: linkedin.com/in/johndoe
+
+        2. Professional Summary:
+           Experienced software engineer with over 5 years in full-stack development, focusing on Python and JavaScript frameworks.
+
+        3. Key Skills:
+           - Programming languages: Python, JavaScript, Java, C++
+           - Web technologies: React, Node.js, Django, Flask
+           - Databases: MongoDB, PostgreSQL, MySQL
+           - DevOps tools: Docker, Kubernetes, AWS
+
+        4. Work Experience:
+           Total Experience: 7 years (as of 2024)
+           a. Senior Software Engineer at TechCorp Inc. (2018 - Present, 6 years)
+              - Led e-commerce platform development (Django, React)
+              - Implemented CI/CD pipelines, improving efficiency
+           b. Software Developer at InnoSoft Solutions (2016 - 2018, 2 years)
+              - Developed RESTful APIs (Flask)
+              - Optimized database performance
+
+        5. Education:
+           Bachelor of Science in Computer Science from University of Technology (2012 - 2016)
+
+        6. Certifications:
+           - AWS Certified Developer - Associate
+           - MongoDB Certified Developer
+
+        This candidate has a strong background in full-stack development with expertise in Python and JavaScript ecosystems, as well as experience with cloud technologies and databases. With 7 years of progressive experience, John Doe has demonstrated growth from a Software Developer to a Senior Software Engineer role.
+        """
+    }
+
+    FEW_SHOT_EXAMPLE_2 = {
+        "input": """
+        Jane Smith
+        Email: jane.smith@email.com | Phone: (987) 654-3210 | Location: New York, NY
+
+        Professional Summary:
+        Data Scientist with 3+ years of experience in machine learning and statistical analysis. Passionate about leveraging data to drive business decisions.
+
+        Technical Skills:
+        - Languages: Python, R, SQL
+        - Machine Learning: Scikit-learn, TensorFlow, Keras
+        - Data Visualization: Tableau, Matplotlib, Seaborn
+        - Big Data: Spark, Hadoop
+
+        Work History:
+        Data Scientist | DataTech Analytics | 2020 - Present
+        - Developed predictive models for customer churn, increasing retention by 15%
+        - Created an automated reporting system using Python and Tableau
+
+        Junior Data Analyst | InsightCorp | 2018 - 2020
+        - Conducted A/B tests to optimize marketing campaigns
+        - Performed exploratory data analysis on large datasets
+
+        Education:
+        Master of Science in Data Science | Data University | 2016 - 2018
+        Bachelor of Science in Statistics | State College | 2012 - 2016
+
+        Projects:
+        - Sentiment Analysis of Social Media Data
+        - Time Series Forecasting for Stock Prices
+        """,
+        "output": """
+        Summary of Jane Smith's Resume:
+
+        1. Contact Information:
+           - Name: Jane Smith
+           - Email: jane.smith@email.com
+           - Phone: (987) 654-3210
+           - Location: New York, NY
+
+        2. Professional Summary:
+           Data Scientist with 5+ years of experience, specializing in machine learning and statistical analysis. Focused on using data to inform business decisions.
+
+        3. Technical Skills:
+           - Programming: Python, R, SQL
+           - Machine Learning: Scikit-learn, TensorFlow, Keras
+           - Data Visualization: Tableau, Matplotlib, Seaborn
+           - Big Data: Spark, Hadoop
+
+        4. Work Experience:
+           Total Experience: 6 years (as of 2024)
+           a. Data Scientist at DataTech Analytics (2020 - Present, 4 years)
+              - Developed predictive models for customer retention
+              - Created automated reporting systems
+           b. Junior Data Analyst at InsightCorp (2018 - 2020, 2 years)
+              - Conducted A/B tests for marketing optimization
+              - Performed exploratory data analysis
+
+        5. Education:
+           - Master of Science in Data Science from Data University (2016 - 2018)
+           - Bachelor of Science in Statistics from State College (2012 - 2016)
+
+        6. Notable Projects:
+           - Sentiment Analysis of Social Media Data
+           - Time Series Forecasting for Stock Prices
+
+        This candidate has a strong background in data science with 6 years of progressive experience, starting as a Junior Data Analyst and advancing to a Data Scientist role. Jane Smith's skills span various data science tools and technologies, making her well-suited for roles requiring both technical expertise and business acumen in data-driven decision making.
+        """
+    }

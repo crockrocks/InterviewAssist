@@ -27,16 +27,34 @@ def create_prompt_template():
     Table schema: {table_schema}
     Schema Description: {schema_description}
 
-    Here is the candidate's data:
+    Here are two examples of how to summarize candidate information:
+
+    Example 1:
+    Input: {example_1_input}
+    Output: {example_1_output}
+
+    Example 2:
+    Input: {example_2_input}
+    Output: {example_2_output}
+
+    Now, here is the candidate's data:
     {candidate_data}
 
-    Based on this information, create a technical summary highlighting their relevant skills, experience, certifications, and education for the position they are applying for.
+    Based on this information and the examples provided, create a technical summary highlighting their relevant skills, experience, certifications, and education for the position they are applying for. Make sure to include the total years of experience and format the summary similarly to the examples.
 
     Return only the technical summary.
     """
     return PromptTemplate(
         template=prompt_template,
-        input_variables=["candidate_data", "table_schema", "schema_description"]
+        input_variables=[
+            "candidate_data", 
+            "table_schema", 
+            "schema_description",
+            "example_1_input",
+            "example_1_output",
+            "example_2_input",
+            "example_2_output"
+        ]
     )
 
 # Initialize the LLM Chain
@@ -65,8 +83,12 @@ def generate_summary(candidate_data):
 
     response = llmchain.invoke({
         "candidate_data": json.dumps(serializable_data, indent=2),
-        "table_schema": Config.TABLE_SCHEMA,
-        "schema_description": Config.SCHEMA_DESCRIPTION
+        "table_schema": json.dumps(Config.TABLE_SCHEMA, indent=2),
+        "schema_description": Config.SCHEMA_DESCRIPTION,
+        "example_1_input": Config.FEW_SHOT_EXAMPLE_1["input"],
+        "example_1_output": Config.FEW_SHOT_EXAMPLE_1["output"],
+        "example_2_input": Config.FEW_SHOT_EXAMPLE_2["input"],
+        "example_2_output": Config.FEW_SHOT_EXAMPLE_2["output"]
     })
 
     # Clean up and return the response
