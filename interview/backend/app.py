@@ -15,8 +15,8 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
-users_collection = db['candidate']
-employee_collection = db['employee']
+users_collection = db['candidate'] #user
+# employee_collection = db['employee']  # removed
 interviews_collection = db['interview']
 
 @app.route('/api/register', methods=['POST'])
@@ -26,7 +26,7 @@ def register():
         return jsonify({'success': False, 'message': 'Email already exists.'}), 400
     
     hashed_password = generate_password_hash(data['password'])
-    users_collection.insert_one({
+    users_collection.insert_one({ #Name : E-Mail : Password : Employee : Bool Emp. Code : unique ID
         'email': data['email'],
         'password': hashed_password
     })
@@ -104,7 +104,7 @@ def submit_interview():
             'skills': skills,
             'experience': experience,
             'resume_filename': filename,
-            'parsed_data': parsed_data
+            'parsed_data': parsed_data #remove
         }
 
 

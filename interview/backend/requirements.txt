@@ -3,5 +3,5 @@ flask_cors
 pymongo
 pymupdf
 langchain
-langcahin_groq
+langchain_groq
 python-dotenv
