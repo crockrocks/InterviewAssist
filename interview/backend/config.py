@@ -10,7 +10,6 @@ class Config:
     UPLOAD_FOLDER = 'uploads'
     GROQ_AI_KEY = os.environ.get('GROQ_AI_KEY')
 
-    # Updated schema based on new task requirements
     TABLE_SCHEMA = {
         "_id": "ObjectId",
         "name": "string",
