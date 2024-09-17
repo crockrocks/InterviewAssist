@@ -3,16 +3,29 @@ import axios from 'axios';
 
 function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [reEnterPassword, setReEnterPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isEmployee, setIsEmployee] = useState(false);
+  const [employeeId, setEmployeeId] = useState('');
+  const [message, setMessage] = useState('');
 
   const toggleForm = () => {
     setIsLogin(!isLogin);
+    setName('');
+    setEmail('');
+    setPassword('');
+    setReEnterPassword('');
+    setIsEmployee(false);
+    setEmployeeId('');
+    setMessage('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage('');
 
     const testUser = {
       email: 'test@example.com',
@@ -38,23 +51,38 @@ function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
         if (response.data.success) {
           onLoginSuccess();
         } else {
-          alert('Login failed');
+          setMessage(response.data.message || 'Login failed');
         }
       } catch (error) {
         console.error('Login error:', error);
-        alert('Login failed');
+        setMessage(error.response?.data?.message || 'Login failed. Please try again.');
       }
     } else {
+      if (password !== reEnterPassword) {
+        setMessage('Passwords do not match');
+        return;
+      }
+
       try {
-        const response = await axios.post('http://127.0.0.1:5000/api/register', { email, password });
+        const response = await axios.post('http://127.0.0.1:5000/api/register', { 
+          name,
+          email, 
+          password,
+          isEmployee,
+          employeeId: isEmployee ? employeeId : undefined
+        });
         if (response.data.success) {
-          onLoginSuccess();
+          setMessage(response.data.message);
+          if (response.data.is_employee) {
+            setMessage(prevMessage => `${prevMessage} Employee code: ${response.data.employee_code}`);
+          }
+          // You might want to automatically log in the user here or redirect them to login
         } else {
-          alert('Sign-up failed');
+          setMessage(response.data.message || 'Sign-up failed');
         }
       } catch (error) {
         console.error('Sign-up error:', error);
-        alert('Sign-up failed');
+        setMessage(error.response?.data?.message || 'Sign-up failed. Please try again.');
       }
     }
   };
@@ -70,7 +98,54 @@ function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
             <h1 className={`${darkMode ? 'text-dark-text' : 'text-light-text'} text-xl font-bold leading-tight tracking-tight md:text-2xl`}>
               {isLogin ? 'Sign in to your account' : 'Create a new account'}
             </h1>
+            {message && (
+              <div className={`p-4 mb-4 text-sm rounded-lg ${darkMode ? 'bg-blue-200 text-blue-800' : 'bg-blue-100 text-blue-700'}`} role="alert">
+                {message}
+              </div>
+            )}
             <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
+              {!isLogin && (
+                <>
+                  <div>
+                    <label htmlFor="name" className={`block mb-2 text-sm font-medium ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Your name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      id="name"
+                      className={`${darkMode ? 'bg-gray-700 border-gray-600 text-dark-text' : 'bg-gray-200 border-gray-400 text-light-text'} sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                      placeholder="John Doe"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="is-employee"
+                      type="checkbox"
+                      className="w-4 h-4 border border-gray-600 rounded bg-gray-700 focus:ring-3 focus:ring-blue-600"
+                      checked={isEmployee}
+                      onChange={(e) => setIsEmployee(e.target.checked)}
+                    />
+                    <label htmlFor="is-employee" className={`ml-2 text-sm ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Are you an employee?</label>
+                  </div>
+                  {isEmployee && (
+                    <div>
+                      <label htmlFor="employee-id" className={`block mb-2 text-sm font-medium ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Employee ID</label>
+                      <input
+                        type="text"
+                        name="employee-id"
+                        id="employee-id"
+                        className={`${darkMode ? 'bg-gray-700 border-gray-600 text-dark-text' : 'bg-gray-200 border-gray-400 text-light-text'} sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                        placeholder="Enter your employee ID"
+                        required={isEmployee}
+                        value={employeeId}
+                        onChange={(e) => setEmployeeId(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
               <div>
                 <label htmlFor="email" className={`block mb-2 text-sm font-medium ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Your email</label>
                 <input
@@ -97,6 +172,21 @@ function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              {!isLogin && (
+                <div>
+                  <label htmlFor="confirm-password" className={`block mb-2 text-sm font-medium ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>Confirm password</label>
+                  <input
+                    type="password"
+                    name="confirm-password"
+                    id="confirm-password"
+                    placeholder="••••••••"
+                    className={`${darkMode ? 'bg-gray-700 border-gray-600 text-dark-text' : 'bg-gray-200 border-gray-400 text-light-text'} sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                    required
+                    value={reEnterPassword}
+                    onChange={(e) => setReEnterPassword(e.target.value)}
+                  />
+                </div>
+              )}
               {isLogin && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-start">

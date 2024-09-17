@@ -15,22 +15,37 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
-users_collection = db['candidate'] #user
-# employee_collection = db['employee']  # removed
-interviews_collection = db['interview']
+users_collection = db['User'] 
+employee_collection = db['Employee'] 
+interviews_collection = db['Interview']
+resume_collection = db['UserResume']
 
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
+    if data.get('isEmployee'):
+        existing_employee = users_collection.find_one({'emp_code': data['employeeId']})
+        if existing_employee:
+            return jsonify({'success': False, 'message': 'Employee ID already exists.'}), 400
     if users_collection.find_one({'email': data['email']}):
         return jsonify({'success': False, 'message': 'Email already exists.'}), 400
     
     hashed_password = generate_password_hash(data['password'])
-    users_collection.insert_one({ #Name : E-Mail : Password : Employee : Bool Emp. Code : unique ID
+    new_user = {
+        'name': data['name'],
         'email': data['email'],
-        'password': hashed_password
-    })
-    return jsonify({'success': True}), 201
+        'password': hashed_password,
+        'employee': data['isEmployee'],
+        'emp_code': data['employeeId'] if data['isEmployee'] else None
+    }
+    result = users_collection.insert_one(new_user)
+    return jsonify({
+        'success': True, 
+        'message': 'Registration successful.',
+        'user_id': str(result.inserted_id),
+        'is_employee': new_user['employee'],
+        'employee_code': new_user['emp_code']
+    }), 201
 
 @app.route('/api/login', methods=['POST'])
 def login():
