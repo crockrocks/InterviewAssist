@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaLinkedin, FaGithub } from 'react-icons/fa';
 import {
   Card,
   CardHeader,
@@ -11,7 +10,7 @@ import {
   Textarea
 } from './ui/custom-components';
 
-const EditableCard = ({ title, content, onEdit, onDelete }) => {
+const EditableCard = ({ title, content, onEdit, onDelete, icon }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
 
@@ -21,19 +20,24 @@ const EditableCard = ({ title, content, onEdit, onDelete }) => {
   };
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">{title}</h3>
+    <Card className="mb-4 shadow-lg">
+      <CardHeader className="flex justify-between items-center bg-gray-100">
+        <div className="flex items-center">
+          {icon && <span className="mr-2">{icon}</span>}
+          <h3 className="text-lg font-semibold">{title}</h3>
+        </div>
         <div>
           <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
             <FaEdit />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onDelete}>
-            <FaTrash />
-          </Button>
+          {onDelete && (
+            <Button variant="ghost" size="icon" onClick={onDelete}>
+              <FaTrash />
+            </Button>
+          )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4">
         {isEditing ? (
           <Textarea
             value={editedContent}
@@ -41,7 +45,62 @@ const EditableCard = ({ title, content, onEdit, onDelete }) => {
             className="w-full"
           />
         ) : (
-          <p>{content}</p>
+          <p className="whitespace-pre-wrap">{content}</p>
+        )}
+      </CardContent>
+      {isEditing && (
+        <CardFooter>
+          <Button onClick={handleSave}>Save</Button>
+        </CardFooter>
+      )}
+    </Card>
+  );
+};
+
+const PersonalInfoCard = ({ info, onEdit }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedInfo, setEditedInfo] = useState(info);
+
+  const handleSave = () => {
+    onEdit(editedInfo);
+    setIsEditing(false);
+  };
+
+  return (
+    <Card className="mb-4 shadow-lg">
+      <CardHeader className="flex justify-between items-center bg-gray-100">
+        <h3 className="text-lg font-semibold">Personal Information</h3>
+        <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
+          <FaEdit />
+        </Button>
+      </CardHeader>
+      <CardContent className="p-4">
+        {isEditing ? (
+          <div className="space-y-2">
+            <Input
+              value={editedInfo.name}
+              onChange={(e) => setEditedInfo({ ...editedInfo, name: e.target.value })}
+              placeholder="Name"
+            />
+            <Input
+              value={editedInfo.email}
+              onChange={(e) => setEditedInfo({ ...editedInfo, email: e.target.value })}
+              placeholder="Email"
+              type="email"
+            />
+            <Input
+              value={editedInfo.phone}
+              onChange={(e) => setEditedInfo({ ...editedInfo, phone: e.target.value })}
+              placeholder="Phone"
+              type="tel"
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p><strong>Name:</strong> {info.name}</p>
+            <p><strong>Email:</strong> {info.email}</p>
+            <p><strong>Phone:</strong> {info.phone}</p>
+          </div>
         )}
       </CardContent>
       {isEditing && (
@@ -214,21 +273,30 @@ const SkillsCard = ({ skills, availableSkills, onAddSkill, onRemoveSkill }) => {
   );
 };
 
+
+
 function InterviewForm({ darkMode, onLogout }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [position, setPosition] = useState('');
-  const [coverLetter, setCoverLetter] = useState('');
-  const [resume, setResume] = useState(null);
-  const [skills, setSkills] = useState([]);
-  const [experiences, setExperiences] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [education, setEducation] = useState('');
-  const [linkedin, setLinkedin] = useState('');
-  const [github, setGithub] = useState('');
-  const [certifications, setCertifications] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    position: '',
+    coverLetter: '',
+    resume: null,
+    skills: [],
+    experiences: [],
+    projects: [],
+    education: '',
+    linkedin: '',
+    github: '',
+    certifications: '',
+  });
+
   const [loading, setLoading] = useState(false);
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const availableSkills = ["JavaScript", "React", "Node.js", "Python", "Java", "C++", "SQL", "MongoDB"];
 
@@ -243,31 +311,59 @@ function InterviewForm({ darkMode, onLogout }) {
   };
 
   const addExperience = () => {
-    setExperiences([...experiences, { company: '', duration: '', responsibilities: [] }]);
+    setFormData(prev => ({
+      ...prev,
+      experiences: [...prev.experiences, { company: '', duration: '', responsibilities: [''] }]
+    }));
   };
 
   const editExperience = (index, updatedExperience) => {
-    const newExperiences = [...experiences];
-    newExperiences[index] = updatedExperience;
-    setExperiences(newExperiences);
+    setFormData(prev => {
+      const newExperiences = [...prev.experiences];
+      newExperiences[index] = updatedExperience;
+      return { ...prev, experiences: newExperiences };
+    });
   };
 
   const deleteExperience = (index) => {
-    setExperiences(experiences.filter((_, i) => i !== index));
+    setFormData(prev => ({
+      ...prev,
+      experiences: prev.experiences.filter((_, i) => i !== index)
+    }));
   };
 
   const addProject = () => {
-    setProjects([...projects, { name: '', details: [] }]);
+    setFormData(prev => ({
+      ...prev,
+      projects: [...prev.projects, { name: '', details: [''] }]
+    }));
   };
 
   const editProject = (index, updatedProject) => {
-    const newProjects = [...projects];
-    newProjects[index] = updatedProject;
-    setProjects(newProjects);
+    setFormData(prev => {
+      const newProjects = [...prev.projects];
+      newProjects[index] = updatedProject;
+      return { ...prev, projects: newProjects };
+    });
   };
 
   const deleteProject = (index) => {
-    setProjects(projects.filter((_, i) => i !== index));
+    setFormData(prev => ({
+      ...prev,
+      projects: prev.projects.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    console.log(formData);
+    
+    setTimeout(() => {
+      setLoading(false);
+      alert('Form submitted successfully!');
+    }, 1000);
   };
 
   const handleResumeUpload = async (e) => {
@@ -326,38 +422,6 @@ function InterviewForm({ darkMode, onLogout }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('email', email);
-    formData.append('phone', phone);
-    formData.append('position', position);
-    formData.append('coverLetter', coverLetter);
-    formData.append('resume', resume);
-    formData.append('skills', skills.join(', '));
-    formData.append('experiences', JSON.stringify(experiences));
-    formData.append('projects', JSON.stringify(projects));
-    formData.append('education', education);
-    formData.append('linkedin', linkedin);
-    formData.append('github', github);
-    formData.append('certifications', certifications);
-
-    try {
-      const response = await axios.post('http://127.0.0.1:5000/api/submit-interview', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      if (response.data.success) {
-        alert('Interview form submitted successfully');
-        // Reset form fields here
-      } else {
-        alert(response.data.message || 'Submission failed');
-      }
-    } catch (error) {
-      console.error('Submission error:', error);
-      alert('Submission failed');
-    }
-  };
 
   const renderInput = (label, value, setter, placeholder, type = "text") => (
     <div>
@@ -385,6 +449,14 @@ function InterviewForm({ darkMode, onLogout }) {
       />
     </div>
   );
+  const handleLogout = () => {
+    // Implement logout logic here
+    if (onLogout) {
+      onLogout();
+    } else {
+      console.log('Logout functionality not implemented');
+    }
+  };
 
   return (
     <section className={`${darkMode ? 'bg-gray-900' : 'bg-white'} min-h-screen`}>
@@ -399,57 +471,52 @@ function InterviewForm({ darkMode, onLogout }) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-              <div className="flex items-center mb-4">
-                <label htmlFor="resume" className={`flex items-center cursor-pointer ${darkMode ? 'text-white' : 'text-black'} mr-2`}>
-                  <FaPlus className="w-6 h-6" />
-                  <span className="ml-2 text-lg font-medium">Upload Resume</span>
-                </label>
-                <input
-                  type="file"
-                  name="resume"
-                  id="resume"
-                  onChange={handleResumeUpload}
-                  className="hidden"
-                  accept=".pdf"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  placeholder="Name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  required
+                />
+                <Input
+                  placeholder="Email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                />
+                <Input
+                  placeholder="Phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  required
+                />
+                <Input
+                  placeholder="Position Applied For"
+                  value={formData.position}
+                  onChange={(e) => handleInputChange('position', e.target.value)}
+                  required
                 />
               </div>
 
-              <EditableCard
-                title="Personal Information"
-                content={`Name: ${name}\nEmail: ${email}\nPhone: ${phone}`}
-                onEdit={(content) => {
-                  const [newName, newEmail, newPhone] = content.split('\n').map(line => line.split(': ')[1]);
-                  setName(newName);
-                  setEmail(newEmail);
-                  setPhone(newPhone);
-                }}
-                onDelete={() => {/* Handle delete if needed */ }}
-              />
-
-              <EditableCard
-                title="Position Applied For"
-                content={position}
-                onEdit={setPosition}
-                onDelete={() => {/* Handle delete if needed */ }}
-              />
-
-              <EditableCard
-                title="Cover Letter"
-                content={coverLetter}
-                onEdit={setCoverLetter}
-                onDelete={() => {/* Handle delete if needed */ }}
+              <Textarea
+                placeholder="Cover Letter"
+                value={formData.coverLetter}
+                onChange={(e) => handleInputChange('coverLetter', e.target.value)}
+                rows="4"
               />
 
               <SkillsCard
-                skills={skills}
+                skills={formData.skills}
                 availableSkills={availableSkills}
-                onAddSkill={addSkill}
-                onRemoveSkill={removeSkill}
+                onAddSkill={(skill) => handleInputChange('skills', [...formData.skills, skill])}
+                onRemoveSkill={(skill) => handleInputChange('skills', formData.skills.filter(s => s !== skill))}
               />
 
               <div>
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'}`}>Experience</h2>
-                {experiences.map((experience, index) => (
+                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'} mb-2`}>Experience</h2>
+                {formData.experiences.map((experience, index) => (
                   <ExperienceCard
                     key={index}
                     experience={experience}
@@ -464,8 +531,8 @@ function InterviewForm({ darkMode, onLogout }) {
               </div>
 
               <div>
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'}`}>Projects</h2>
-                {projects.map((project, index) => (
+                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'} mb-2`}>Projects</h2>
+                {formData.projects.map((project, index) => (
                   <ProjectCard
                     key={index}
                     project={project}
@@ -481,33 +548,31 @@ function InterviewForm({ darkMode, onLogout }) {
 
               <EditableCard
                 title="Education"
-                content={education}
-                onEdit={setEducation}
-                onDelete={() => {/* Handle delete if needed */ }}
+                content={formData.education}
+                onEdit={(value) => handleInputChange('education', value)}
               />
 
               <EditableCard
                 title="LinkedIn Profile"
-                content={linkedin}
-                onEdit={setLinkedin}
-                onDelete={() => {/* Handle delete if needed */ }}
+                content={formData.linkedin}
+                onEdit={(value) => handleInputChange('linkedin', value)}
+                icon={<FaLinkedin />}
               />
 
               <EditableCard
                 title="GitHub Profile"
-                content={github}
-                onEdit={setGithub}
-                onDelete={() => {/* Handle delete if needed */ }}
+                content={formData.github}
+                onEdit={(value) => handleInputChange('github', value)}
+                icon={<FaGithub />}
               />
 
               <EditableCard
                 title="Certifications"
-                content={certifications}
-                onEdit={setCertifications}
-                onDelete={() => {/* Handle delete if needed */ }}
+                content={formData.certifications}
+                onEdit={(value) => handleInputChange('certifications', value)}
               />
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Submitting...' : 'Submit Application'}
               </Button>
             </form>
