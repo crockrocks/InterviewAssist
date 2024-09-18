@@ -1,6 +1,11 @@
-import fitz  
+import fitz
 import re
 import os
+import json
+from langchain.chains.llm import LLMChain
+from langchain.prompts import PromptTemplate
+from langchain_groq import ChatGroq
+from config import Config
 
 def extract_text_from_pdf(pdf_path):
     """Extracts all the text from a given PDF."""
@@ -10,56 +15,141 @@ def extract_text_from_pdf(pdf_path):
         text += page.get_text()
     return text
 
+def initialize_llm():
+    os.environ["GROQ_API_KEY"] = Config.GROQ_AI_KEY
+    return ChatGroq(
+        model="llama-3.1-70b-versatile",
+        temperature=0,
+        max_tokens=None,
+        timeout=None,
+        max_retries=2,
+    )
+
+def create_prompt_template():
+    prompt_template = """
+    You are an expert resume parser. Your task is to extract relevant information from the given resume text and format it according to the specified structure. Resume text may vary in format, so please extract the information based on the following definitions.
+
+    - Name: Usually the first line, typically a person’s name.
+    - Email: Text containing '@'.
+    - Phone: Typically a number starting with a '+' sign or a 10-digit number.
+    - Position: Mentioned job title, if any.
+    - LinkedIn URL: URL starting with 'linkedin.com'.
+    - GitHub URL: URL starting with 'github.com'.
+    - Skills: A list of skills, often under headings like 'Skills' or 'Technical Skills'.
+    - Experiences: A list of professional experiences, often under headings like 'Experience', with details about company, duration, and responsibilities.
+    - Education: A list of educational qualifications, often under 'Education' heading, with institution name, degree, and year.
+    - Projects: A list of projects, typically with a name and brief description.
+    - Certifications: Certifications or courses completed, if mentioned.
+
+    Extract and format the following information:
+
+    1. Name
+    2. Email
+    3. Phone
+    4. Position (if mentioned, otherwise leave blank)
+    5. LinkedIn URL
+    6. GitHub URL
+    7. Skills (as a list)
+    8. Experiences (as a list of dictionaries with company, duration, and responsibilities)
+    9. Education (as a list of dictionaries with institution, degree, and year)
+    10. Projects (as a list of dictionaries with name and details)
+    11. Certifications (as a string, each on a new line)
+    12. Cover Letter (if present, otherwise leave blank)
+
+    Please return the output as a JSON object that can be directly parsed by a web application. Ensure all fields are present, even if some are empty.
+
+    Resume Text:
+    {resume_text}
+
+    """
+    return PromptTemplate(
+        template=prompt_template,
+        input_variables=["resume_text"]
+    )
+
+def initialize_llm_chain(llm, prompt_template):
+    return LLMChain(llm=llm, prompt=prompt_template, verbose=True)
+
+import re
+
 def parse_resume(text):
-    """Parses relevant sections like name, phone, email, LinkedIn, skills, experience, certifications, and education."""
-    parsed_data = {}
+    llm = initialize_llm()
+    prompt_template = create_prompt_template()
+    llm_chain = initialize_llm_chain(llm, prompt_template)
 
-    name_match = re.search(r"^[A-Z][a-zA-Z]+\s[A-Z][a-zA-Z]+", text, re.MULTILINE)
-    parsed_data["name"] = name_match.group(0) if name_match else "Not found."
+    response = llm_chain.invoke({"resume_text": text})
 
-    phone_match = re.search(r"\+?\d[\d -]{8,}\d", text)
-    parsed_data["phone"] = phone_match.group(0) if phone_match else "Not found."
+    # Extract the raw response text
+    raw_response = response.get('text', '')
 
+    if not raw_response:
+        print("Error: LLM did not return any text.")
+        return {}
 
-    email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text)
-    parsed_data["email"] = email_match.group(0) if email_match else "Not found."
+    # Remove any markdown-like code blocks (e.g., triple backticks)
+    clean_response = re.sub(r'```(?:json)?', '', raw_response).strip()
 
-    linkedin_match = re.search(r"(https?:\/\/)?(www\.)?linkedin\.com\/[a-zA-Z0-9\-/]+", text)
-    parsed_data["linkedin"] = linkedin_match.group(0) if linkedin_match else "Not found."
+    # Try to extract the first valid JSON block from the response
+    try:
+        # Find the first occurrence of '{' and the last occurrence of '}' to get the JSON content
+        json_start = clean_response.find('{')
+        json_end = clean_response.rfind('}') + 1
 
-    # Extract skills
-    skills_match = re.search(r"(Skills|Technical Skills|Key Skills|Core Competencies|Strengths|TECHNICAL SKILLS)(?::|\n+)([\s\S]+?)(?=\n\s*\n|Experience|Certifications|Education|$)", text, re.IGNORECASE)
-    parsed_data["skills"] = skills_match.group(2).strip() if skills_match else "Not found."
+        if json_start == -1 or json_end == -1:
+            raise ValueError("No valid JSON found in the response.")
 
-    sections = {
-        "experience": r"(Experience|Work Experience|Employment History)([\s\S]+?)(?=\n\s*\n|Certifications|Skills|Education|$)",
-        "certifications": r"(Certifications|Licenses|Certifications and Licenses)([\s\S]+?)(?=\n\s*\n|Experience|Skills|Education|$)",
-        "education": r"(Education|Academic Background|Qualifications)([\s\S]+?)(?=\n\s*\n|Experience|Certifications|Skills|$)",
-    }
+        json_content = clean_response[json_start:json_end]
 
-    for section, pattern in sections.items():
-        match = re.search(pattern, text, re.IGNORECASE)
-        parsed_data[section] = match.group(2).strip() if match else "Not found."
+        # Attempt to parse the extracted JSON
+        parsed_data = json.loads(json_content)
+        return parsed_data
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"JSON parsing failed: {e}")
 
-    return parsed_data
+    # If parsing fails, return an empty dictionary as fallback
+    print("Unable to parse the response. Returning an empty dictionary.")
+    return {}
+
 
 def save_parsed_resume(parsed_data):
-    """Saves the parsed resume data to a .txt file."""
-    name = parsed_data["name"]
-    file_name = f"{name}.txt" if name != "Not found." else "parsed_resume.txt"
-    
+    """Saves the parsed resume data to a JSON file."""
+    name = parsed_data.get("name", "Unknown")
+    file_name = f"{name}_parsed_resume.json" if name else "parsed_resume.json"
+
     with open(file_name, "w", encoding="utf-8") as file:
-        for section, content in parsed_data.items():
-            file.write(f"{section.capitalize()}:\n{content}\n\n")
-    
+        json.dump(parsed_data, file, indent=2)
+
     print(f"Resume details saved to {file_name}")
 
+# Example of usage
 if __name__ == "__main__":
-    pdf_path = 'latest_resume.pdf'
+    resume_text = """
+    Harsh Pant
+    V3S Indralok, Indirapuram, Uttar Pradesh, 201014
+    Ó +91 9910222161
+    R harshpant3703@gmail.com
+    ¯ linkedin.com/in/harsh-pant2003
+    github.com/crockrocks
+    EDUCATION
+    Gautam Buddha University
+    Bachelor of Technology in Artificial Intelligence
+    Sept. 2021 – July 2025
+    Greater Noida, Uttar Pradesh
+    EXPERIENCE
+    PharynxAI
+    June 2024 – Present
+    • Junior AI/ML Engineer, Designed Generative AI workflows using ComfyUI, enhancing tasks such as cloth inpainting, image
+    upscaling, and video creation, leading to a 20% increase in processing efficiency.
+    • Refined open-source projects by optimizing code, integrating state-of-the-art models, and implementing solutions on platforms
+    like Runpod and Hugging Face, reducing deployment time by 30%.
+    Deepmindz Innovations
+    Jan 2024 – June 2024
+    • AI/ML Intern, Contributed to developing and optimizing Generative AI workflows using ComfyUI and Automatic 1111, which
+    improved image generation and upscaling quality.
+    """
+
+    # Parse the resume
+    parsed_resume = parse_resume(resume_text)
     
-    if os.path.exists(pdf_path):
-        text = extract_text_from_pdf(pdf_path)
-        parsed_data = parse_resume(text)
-        save_parsed_resume(parsed_data)
-    else:
-        print(f"File {pdf_path} not found.")
+    # Save the parsed resume to a JSON file
+    save_parsed_resume(parsed_resume)

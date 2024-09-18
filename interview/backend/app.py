@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 import os
 from parse import extract_text_from_pdf, parse_resume
 from llm import get_candidate_data, generate_summary
@@ -10,15 +11,22 @@ app = Flask(__name__)
 CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
-users_collection = db['User'] 
-employee_collection = db['Employee'] 
+users_collection = db['User']
+employee_collection = db['Employee']
 interviews_collection = db['Interview']
 resume_collection = db['UserResume']
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -64,25 +72,28 @@ def parse_resume_route():
     if resume.filename == '':
         return jsonify({'success': False, 'message': 'No selected file.'}), 400
 
-    if not resume.filename.lower().endswith('.pdf'):
-        return jsonify({'success': False, 'message': 'Only PDF files are allowed.'}), 400
+    if not allowed_file(resume.filename):
+        return jsonify({'success': False, 'message': 'Invalid file type. Only PDF files are allowed.'}), 400
 
-    filename = f"temp_{os.urandom(8).hex()}_{resume.filename}"
-    resume_path = os.path.join(UPLOAD_FOLDER, filename)
+    filename = secure_filename(f"temp_{os.urandom(8).hex()}_{resume.filename}")
+    resume_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     resume.save(resume_path)
 
     try:
         text = extract_text_from_pdf(resume_path)
-        print(f"Extracted text from PDF: {text}") 
+        if not text:
+            raise ValueError("No text extracted from the document")
         parsed_data = parse_resume(text)
-        print(f"Parsed resume data: {parsed_data}") 
+        print(parsed_data)
         os.remove(resume_path)
         return jsonify({'success': True, 'parsed_data': parsed_data})
         
     except Exception as e:
-        os.remove(resume_path)
-        print(f"Error during resume parsing: {str(e)}") 
+        if os.path.exists(resume_path):
+            os.remove(resume_path)
+        print(f"Error during resume parsing: {str(e)}")
         return jsonify({'success': False, 'message': 'Error parsing resume.', 'error': str(e)}), 500
+
 
 @app.route('/api/submit-interview', methods=['POST'])
 def submit_interview():
@@ -91,51 +102,45 @@ def submit_interview():
         email = request.form.get('email')
         phone = request.form.get('phone')
         position = request.form.get('position')
+        linkedin = request.form.get('linkedin')
+        github = request.form.get('github')
         coverLetter = request.form.get('coverLetter')
         skills = request.form.get('skills')
-        experience = request.form.get('experience')
+        experience = request.form.get('experiences')
+        projects = request.form.get('projects')
         resume = request.files.get('resume')
+        certifications = request.form.get('certifications')
 
         filename = None
-        parsed_data = {}
-
         if resume:
             filename = f"{name}_{resume.filename}"
             resume_path = os.path.join(UPLOAD_FOLDER, filename)
             resume.save(resume_path)
 
-            try:
-                text = extract_text_from_pdf(resume_path)
-                parsed_data = parse_resume(text)
-            except Exception as e:
-                return jsonify({'success': False, 'message': 'Error parsing resume.', 'error': str(e)}), 500
-
+        # Prepare the interview data
         interview_data = {
             'name': name,
             'email': email,
             'phone': phone,
             'position': position,
+            'linkedin': linkedin,
+            'github': github,
             'coverLetter': coverLetter,
             'skills': skills,
             'experience': experience,
             'resume_filename': filename,
-            'parsed_data': parsed_data #remove
+            'certifications': certifications
         }
 
-
         interviews_collection.insert_one(interview_data)
-        candidate_data = get_candidate_data({"name": name})
-        summary = generate_summary(candidate_data)
-        interviews_collection.update_one(
-            {"name": name},
-            {"$set": {"technical_summary": summary}}
-        )
-        print("Generated Technical Summary:\n", summary)
 
-        return jsonify({'success': True, 'summary': summary})
+        return jsonify({'success': True, 'message': 'Interview submission successful.'})
 
     except Exception as e:
         return jsonify({'success': False, 'message': 'Error during interview submission.', 'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 if __name__ == '__main__':
     app.run(debug=True)

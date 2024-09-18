@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaLinkedin, FaGithub } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaLinkedin, FaGithub, FaFileUpload } from 'react-icons/fa';
+import axios from 'axios'; 
 import {
   Card,
   CardHeader,
@@ -7,124 +8,20 @@ import {
   CardFooter,
   Button,
   Input,
-  Textarea
+  Textarea,
+  Separator,
+  Label
 } from './ui/custom-components';
-
-const EditableCard = ({ title, content, onEdit, onDelete, icon }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(content);
-
-  const handleSave = () => {
-    onEdit(editedContent);
-    setIsEditing(false);
-  };
-
-  return (
-    <Card className="mb-4 shadow-lg">
-      <CardHeader className="flex justify-between items-center bg-gray-100">
-        <div className="flex items-center">
-          {icon && <span className="mr-2">{icon}</span>}
-          <h3 className="text-lg font-semibold">{title}</h3>
-        </div>
-        <div>
-          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
-            <FaEdit />
-          </Button>
-          {onDelete && (
-            <Button variant="ghost" size="icon" onClick={onDelete}>
-              <FaTrash />
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-4">
-        {isEditing ? (
-          <Textarea
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-            className="w-full"
-          />
-        ) : (
-          <p className="whitespace-pre-wrap">{content}</p>
-        )}
-      </CardContent>
-      {isEditing && (
-        <CardFooter>
-          <Button onClick={handleSave}>Save</Button>
-        </CardFooter>
-      )}
-    </Card>
-  );
-};
-
-const PersonalInfoCard = ({ info, onEdit }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedInfo, setEditedInfo] = useState(info);
-
-  const handleSave = () => {
-    onEdit(editedInfo);
-    setIsEditing(false);
-  };
-
-  return (
-    <Card className="mb-4 shadow-lg">
-      <CardHeader className="flex justify-between items-center bg-gray-100">
-        <h3 className="text-lg font-semibold">Personal Information</h3>
-        <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
-          <FaEdit />
-        </Button>
-      </CardHeader>
-      <CardContent className="p-4">
-        {isEditing ? (
-          <div className="space-y-2">
-            <Input
-              value={editedInfo.name}
-              onChange={(e) => setEditedInfo({ ...editedInfo, name: e.target.value })}
-              placeholder="Name"
-            />
-            <Input
-              value={editedInfo.email}
-              onChange={(e) => setEditedInfo({ ...editedInfo, email: e.target.value })}
-              placeholder="Email"
-              type="email"
-            />
-            <Input
-              value={editedInfo.phone}
-              onChange={(e) => setEditedInfo({ ...editedInfo, phone: e.target.value })}
-              placeholder="Phone"
-              type="tel"
-            />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <p><strong>Name:</strong> {info.name}</p>
-            <p><strong>Email:</strong> {info.email}</p>
-            <p><strong>Phone:</strong> {info.phone}</p>
-          </div>
-        )}
-      </CardContent>
-      {isEditing && (
-        <CardFooter>
-          <Button onClick={handleSave}>Save</Button>
-        </CardFooter>
-      )}
-    </Card>
-  );
-};
 
 const ExperienceCard = ({ experience, onEdit, onDelete, darkMode }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedExperience, setEditedExperience] = useState(experience);
-
-  const handleSave = () => {
-    onEdit(editedExperience);
-    setIsEditing(false);
-  };
 
   return (
     <Card className={`mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
       <CardHeader className="flex justify-between items-center">
-        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'}`}>{experience.company}</h3>
+        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'}`}>
+          {isEditing ? 'Edit Experience' : experience.company || 'New Experience'}
+        </h3>
         <div>
           <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
             <FaEdit />
@@ -135,57 +32,37 @@ const ExperienceCard = ({ experience, onEdit, onDelete, darkMode }) => {
         </div>
       </CardHeader>
       <CardContent>
-        {isEditing ? (
-          <div className="space-y-2">
-            <Input
-              value={editedExperience.company}
-              onChange={(e) => setEditedExperience({ ...editedExperience, company: e.target.value })}
-              placeholder="Company"
-            />
-            <Input
-              value={editedExperience.duration}
-              onChange={(e) => setEditedExperience({ ...editedExperience, duration: e.target.value })}
-              placeholder="Duration"
-            />
-            <Textarea
-              value={editedExperience.responsibilities.join('\n')}
-              onChange={(e) => setEditedExperience({ ...editedExperience, responsibilities: e.target.value.split('\n') })}
-              placeholder="Responsibilities (one per line)"
-            />
-          </div>
-        ) : (
-          <div>
-            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{experience.duration}</p>
-            <ul className={`list-disc list-inside mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              {experience.responsibilities.map((resp, index) => (
-                <li key={index}>{resp}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="space-y-2">
+          <Input
+            value={experience.company}
+            onChange={(e) => onEdit({ ...experience, company: e.target.value })}
+            placeholder="Company"
+          />
+          <Input
+            value={experience.duration}
+            onChange={(e) => onEdit({ ...experience, duration: e.target.value })}
+            placeholder="Duration"
+          />
+          <Textarea
+            value={experience.responsibilities.join('\n')}
+            onChange={(e) => onEdit({ ...experience, responsibilities: e.target.value.split('\n').filter(r => r.trim() !== '') })}
+            placeholder="Responsibilities (one per line)"
+          />
+        </div>
       </CardContent>
-      {isEditing && (
-        <CardFooter>
-          <Button onClick={handleSave}>Save</Button>
-        </CardFooter>
-      )}
     </Card>
   );
 };
 
-const ProjectCard = ({ project, onEdit, onDelete, darkMode }) => {
+const EducationCard = ({ education, onEdit, onDelete, darkMode }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedProject, setEditedProject] = useState(project);
-
-  const handleSave = () => {
-    onEdit(editedProject);
-    setIsEditing(false);
-  };
 
   return (
     <Card className={`mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
       <CardHeader className="flex justify-between items-center">
-        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'}`}>{project.name}</h3>
+        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'}`}>
+          {isEditing ? 'Edit Education' : education.institution || 'New Education'}
+        </h3>
         <div>
           <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
             <FaEdit />
@@ -196,32 +73,61 @@ const ProjectCard = ({ project, onEdit, onDelete, darkMode }) => {
         </div>
       </CardHeader>
       <CardContent>
-        {isEditing ? (
-          <div className="space-y-2">
-            <Input
-              value={editedProject.name}
-              onChange={(e) => setEditedProject({ ...editedProject, name: e.target.value })}
-              placeholder="Project Name"
-            />
-            <Textarea
-              value={editedProject.details.join('\n')}
-              onChange={(e) => setEditedProject({ ...editedProject, details: e.target.value.split('\n') })}
-              placeholder="Project Details (one per line)"
-            />
-          </div>
-        ) : (
-          <ul className={`list-disc list-inside mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            {project.details.map((detail, index) => (
-              <li key={index}>{detail}</li>
-            ))}
-          </ul>
-        )}
+        <div className="space-y-2">
+          <Input
+            value={education.institution}
+            onChange={(e) => onEdit({ ...education, institution: e.target.value })}
+            placeholder="Institution"
+          />
+          <Input
+            value={education.degree}
+            onChange={(e) => onEdit({ ...education, degree: e.target.value })}
+            placeholder="Degree"
+          />
+          <Input
+            value={education.year}
+            onChange={(e) => onEdit({ ...education, year: e.target.value })}
+            placeholder="Year of Graduation"
+          />
+        </div>
       </CardContent>
-      {isEditing && (
-        <CardFooter>
-          <Button onClick={handleSave}>Save</Button>
-        </CardFooter>
-      )}
+    </Card>
+  );
+};
+
+
+const ProjectCard = ({ project, onEdit, onDelete, darkMode }) => {
+  const [isEditing, setIsEditing] = useState(false);
+
+  return (
+    <Card className={`mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+      <CardHeader className="flex justify-between items-center">
+        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'}`}>
+          {isEditing ? 'Edit Project' : project.name || 'New Project'}
+        </h3>
+        <div>
+          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
+            <FaEdit />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onDelete}>
+            <FaTrash />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <Input
+            value={project.name}
+            onChange={(e) => onEdit({ ...project, name: e.target.value })}
+            placeholder="Project Name"
+          />
+          <Textarea
+            value={project.details.join('\n')}
+            onChange={(e) => onEdit({ ...project, details: e.target.value.split('\n').filter(d => d.trim() !== '') })}
+            placeholder="Project Details (one per line)"
+          />
+        </div>
+      </CardContent>
     </Card>
   );
 };
@@ -229,7 +135,8 @@ const ProjectCard = ({ project, onEdit, onDelete, darkMode }) => {
 const SkillsCard = ({ skills, availableSkills, onAddSkill, onRemoveSkill }) => {
   const [newSkill, setNewSkill] = useState('');
 
-  const handleAddSkill = () => {
+  const handleAddSkill = (e) => {
+    e.preventDefault(); // Prevent form submission
     if (newSkill && !skills.includes(newSkill)) {
       onAddSkill(newSkill);
       setNewSkill('');
@@ -242,17 +149,20 @@ const SkillsCard = ({ skills, availableSkills, onAddSkill, onRemoveSkill }) => {
         <h3 className="text-lg font-semibold">Skills</h3>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-4">
           {skills.map((skill, index) => (
             <div key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center">
               {skill}
-              <button onClick={() => onRemoveSkill(skill)} className="ml-2 text-red-500">
+              <button 
+                type="button" 
+                onClick={() => onRemoveSkill(skill)} 
+                className="ml-2 text-red-500">
                 &times;
               </button>
             </div>
           ))}
         </div>
-        <div className="mt-4 flex">
+        <div className="flex">
           <Input
             value={newSkill}
             onChange={(e) => setNewSkill(e.target.value)}
@@ -264,7 +174,10 @@ const SkillsCard = ({ skills, availableSkills, onAddSkill, onRemoveSkill }) => {
               <option key={index} value={skill} />
             ))}
           </datalist>
-          <Button onClick={handleAddSkill} className="ml-2">
+          <Button 
+            type="button" 
+            onClick={handleAddSkill} 
+            className="ml-2">
             <FaPlus />
           </Button>
         </div>
@@ -272,7 +185,6 @@ const SkillsCard = ({ skills, availableSkills, onAddSkill, onRemoveSkill }) => {
     </Card>
   );
 };
-
 
 
 function InterviewForm({ darkMode, onLogout }) {
@@ -286,7 +198,7 @@ function InterviewForm({ darkMode, onLogout }) {
     skills: [],
     experiences: [],
     projects: [],
-    education: '',
+    educations: [],
     linkedin: '',
     github: '',
     certifications: '',
@@ -301,13 +213,19 @@ function InterviewForm({ darkMode, onLogout }) {
   const availableSkills = ["JavaScript", "React", "Node.js", "Python", "Java", "C++", "SQL", "MongoDB"];
 
   const addSkill = (newSkill) => {
-    if (newSkill && !skills.includes(newSkill)) {
-      setSkills([...skills, newSkill]);
+    if (newSkill && !formData.skills.includes(newSkill)) {
+      setFormData(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill]
+      }));
     }
   };
 
   const removeSkill = (skillToRemove) => {
-    setSkills(skills.filter(skill => skill !== skillToRemove));
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(skill => skill !== skillToRemove)
+    }));
   };
 
   const addExperience = () => {
@@ -318,17 +236,37 @@ function InterviewForm({ darkMode, onLogout }) {
   };
 
   const editExperience = (index, updatedExperience) => {
-    setFormData(prev => {
-      const newExperiences = [...prev.experiences];
-      newExperiences[index] = updatedExperience;
-      return { ...prev, experiences: newExperiences };
-    });
+    setFormData(prev => ({
+      ...prev,
+      experiences: prev.experiences.map((exp, i) => i === index ? updatedExperience : exp)
+    }));
   };
 
   const deleteExperience = (index) => {
     setFormData(prev => ({
       ...prev,
       experiences: prev.experiences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addEducation = () => {
+    setFormData(prev => ({
+      ...prev,
+      educations: [...prev.educations, { institution: '', degree: '', year: '' }]
+    }));
+  };
+
+  const editEducation = (index, updatedEducation) => {
+    setFormData(prev => ({
+      ...prev,
+      educations: prev.educations.map((edu, i) => i === index ? updatedEducation : edu)
+    }));
+  };
+
+  const deleteEducation = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      educations: prev.educations.filter((_, i) => i !== index)
     }));
   };
 
@@ -340,11 +278,10 @@ function InterviewForm({ darkMode, onLogout }) {
   };
 
   const editProject = (index, updatedProject) => {
-    setFormData(prev => {
-      const newProjects = [...prev.projects];
-      newProjects[index] = updatedProject;
-      return { ...prev, projects: newProjects };
-    });
+    setFormData(prev => ({
+      ...prev,
+      projects: prev.projects.map((proj, i) => i === index ? updatedProject : proj)
+    }));
   };
 
   const deleteProject = (index) => {
@@ -354,169 +291,259 @@ function InterviewForm({ darkMode, onLogout }) {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    console.log(formData);
-    
-    setTimeout(() => {
-      setLoading(false);
-      alert('Form submitted successfully!');
-    }, 1000);
-  };
-
   const handleResumeUpload = async (e) => {
     const file = e.target.files[0];
-    setResume(file);
-
     if (file) {
       setLoading(true);
       const formData = new FormData();
       formData.append('resume', file);
-
+  
       try {
-        const response = await axios.post('http://127.0.0.1:5000/api/parse-resume', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+        const response = await axios.post('http://localhost:5000/api/parse-resume', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
-
-        if (response.data.success) {
-          const parsed = response.data.parsed_data;
-
-          setName(parsed.name);
-          setEmail(parsed.email);
-          setPhone(parsed.phone);
-          setLinkedin(parsed.linkedin);
-          setSkills(parsed.skills.split(', '));
-          setEducation(parsed.education);
-          setCertifications(parsed.certifications);
-
-          const experiencesArray = parsed.experience.split('\n\n').map(exp => {
-            const lines = exp.split('\n');
-            return {
-              company: lines[0],
-              duration: lines[1],
-              responsibilities: lines.slice(2).map(resp => resp.trim().replace('• ', ''))
-            };
-          });
-          setExperiences(experiencesArray);
-
-          const projectsArray = parsed.projects.split('\n\n').map(proj => {
-            const lines = proj.split('\n');
-            return {
-              name: lines[0],
-              details: lines.slice(1).map(detail => detail.trim().replace('• ', ''))
-            };
-          });
-          setProjects(projectsArray);
-
+  
+        if (response.data && response.data.success) {
+          const parsedData = response.data.parsed_data;
+          
+          // Update form state with parsed data
+          setFormData(prev => ({
+            ...prev,
+            name: parsedData.name || '',
+            email: parsedData.email || '',
+            phone: parsedData.phone || '',
+            position: parsedData.position || '',
+            linkedin: parsedData.linkedin || '',
+            github: parsedData.github || '',
+            skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+            experiences: Array.isArray(parsedData.experiences) ? parsedData.experiences : [],
+            educations: Array.isArray(parsedData.educations) ? parsedData.educations : [],
+            projects: Array.isArray(parsedData.projects) ? parsedData.projects : [],
+            certifications: typeof parsedData.certifications === 'string' ? parsedData.certifications : '',
+            coverLetter: parsedData.coverLetter || '',
+            resume: file,
+          }));
+  
+          console.log('Form data updated with parsed resume data:', parsedData);
         } else {
-          alert(response.data.message || 'Resume parsing failed');
+          console.error('Failed to parse resume:', response.data);
+          alert('Failed to parse resume. Please try again.');
         }
       } catch (error) {
-        console.error('Resume parsing error:', error);
-        alert('Resume parsing failed');
+        console.error('Error parsing resume:', error);
+        alert('An error occurred while parsing the resume. Please try again.');
       } finally {
         setLoading(false);
       }
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    const submitFormData = new FormData();
+    for (const key in formData) {
+      if (key === 'resume') {
+        submitFormData.append(key, formData[key]);
+      } else if (Array.isArray(formData[key])) {
+        submitFormData.append(key, JSON.stringify(formData[key]));
+      } else {
+        submitFormData.append(key, formData[key]);
+      }
+    }
 
-  const renderInput = (label, value, setter, placeholder, type = "text") => (
-    <div>
-      <label htmlFor={label.toLowerCase()} className={`block mb-2 text-sm font-medium ${darkMode ? 'text-white' : 'text-black'}`}>{label}</label>
-      <Input
-        type={type}
-        id={label.toLowerCase()}
-        value={value}
-        onChange={(e) => setter(e.target.value)}
-        placeholder={placeholder}
-        required
-      />
-    </div>
-  );
+    try {
+      const response = await axios.post('http://localhost:5000/api/submit-interview', submitFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-  const renderTextArea = (label, value, setter, placeholder) => (
-    <div>
-      <label htmlFor={label.toLowerCase()} className={`block mb-2 text-sm font-medium ${darkMode ? 'text-white' : 'text-black'}`}>{label}</label>
-      <Textarea
-        id={label.toLowerCase()}
-        value={value}
-        onChange={(e) => setter(e.target.value)}
-        placeholder={placeholder}
-        rows="3"
-      />
-    </div>
-  );
-  const handleLogout = () => {
-    // Implement logout logic here
-    if (onLogout) {
-      onLogout();
-    } else {
-      console.log('Logout functionality not implemented');
+      if (response.data.success) {
+        alert('Form submitted successfully!');
+      } else {
+        alert('Failed to submit form. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('An error occurred while submitting the form. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
+ 
   return (
-    <section className={`${darkMode ? 'bg-gray-900' : 'bg-white'} min-h-screen`}>
-      <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto min-h-screen lg:py-0">
-        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'} w-full rounded-lg shadow border md:mt-0 sm:max-w-2xl xl:p-0`}>
-          <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
+    <section className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} min-h-screen py-12`}>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+        <Card className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-lg rounded-lg overflow-hidden`}>
+          <CardHeader className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center">
-              <h1 className={`${darkMode ? 'text-white' : 'text-black'} text-xl font-bold leading-tight tracking-tight md:text-2xl`}>
-                Job Application Form
+              <h1 className={`${darkMode ? 'text-white' : 'text-gray-900'} text-2xl font-bold`}>
+                Please Fill In Your Details
               </h1>
-              <Button onClick={onLogout}>Logout</Button>
+              <Button onClick={onLogout} variant="outline">Logout</Button>
             </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Resume Upload Section */}
+              <div>
+                <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Resume Upload</h2>
+                <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 dark:border-gray-600 px-6 py-10">
+                  <div className="text-center">
+                    <FaFileUpload className="mx-auto h-12 w-12 text-gray-300" aria-hidden="true" />
+                    <div className="mt-4 flex text-sm leading-6 text-gray-600 dark:text-gray-400">
+                      <label
+                        htmlFor="resume-upload"
+                        className="relative cursor-pointer rounded-md bg-white dark:bg-gray-700 font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
+                      >
+                        <span>Upload a file</span>
+                        <Input
+                          id="resume-upload"
+                          name="resume-upload"
+                          type="file"
+                          className="sr-only"
+                          onChange={handleResumeUpload}
+                          accept=".pdf,.doc,.docx"
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs leading-5 text-gray-600 dark:text-gray-400">PDF, DOC, or DOCX up to 10MB</p>
+                  </div>
+                </div>
+                {formData.resume && (
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    Selected file: {formData.resume.name}
+                  </p>
+                )}
+              </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  placeholder="Name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  required
-                />
-                <Input
-                  placeholder="Email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  required
-                />
-                <Input
-                  placeholder="Phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  required
-                />
-                <Input
-                  placeholder="Position Applied For"
-                  value={formData.position}
-                  onChange={(e) => handleInputChange('position', e.target.value)}
-                  required
+              <Separator className="my-8" />
+
+              {/* Personal Information */}
+              <div>
+                <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Personal Information</h2>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="John Doe"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="john@example.com"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+1 (555) 123-4567"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="position">Position Applied For</Label>
+                    <Input
+                      id="position"
+                      placeholder="Software Engineer"
+                      value={formData.position}
+                      onChange={(e) => handleInputChange('position', e.target.value)}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="linkedin">LinkedIn Profile</Label>
+                    <div className="mt-1 flex rounded-md shadow-sm">
+                      <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 px-3 text-gray-500 dark:text-gray-400 sm:text-sm">
+                        <FaLinkedin className="h-5 w-5" />
+                      </span>
+                      <Input
+                        id="linkedin"
+                        placeholder="linkedin.com/in/johndoe"
+                        value={formData.linkedin}
+                        onChange={(e) => handleInputChange('linkedin', e.target.value)}
+                        className="rounded-none rounded-r-md"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="github">GitHub Profile</Label>
+                    <div className="mt-1 flex rounded-md shadow-sm">
+                      <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 px-3 text-gray-500 dark:text-gray-400 sm:text-sm">
+                        <FaGithub className="h-5 w-5" />
+                      </span>
+                      <Input
+                        id="github"
+                        placeholder="github.com/johndoe"
+                        value={formData.github}
+                        onChange={(e) => handleInputChange('github', e.target.value)}
+                        className="rounded-none rounded-r-md"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="my-8" />
+
+              {/* Cover Letter */}
+              <div>
+                <Label htmlFor="cover-letter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cover Letter</Label>
+                <div className="mt-1">
+                  <Textarea
+                    id="cover-letter"
+                    placeholder="Tell us why you're perfect for this role..."
+                    value={formData.coverLetter}
+                    onChange={(e) => handleInputChange('coverLetter', e.target.value)}
+                    rows="4"
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mt-1 block w-full sm:text-sm border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+
+              <Separator className="my-8" />
+
+              {/* Skills Section */}
+              <div>
+                <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Skills</h2>
+                <SkillsCard
+                  skills={formData.skills}
+                  availableSkills={availableSkills}
+                  onAddSkill={addSkill}
+                  onRemoveSkill={removeSkill}
                 />
               </div>
 
-              <Textarea
-                placeholder="Cover Letter"
-                value={formData.coverLetter}
-                onChange={(e) => handleInputChange('coverLetter', e.target.value)}
-                rows="4"
-              />
+              <Separator className="my-8" />
 
-              <SkillsCard
-                skills={formData.skills}
-                availableSkills={availableSkills}
-                onAddSkill={(skill) => handleInputChange('skills', [...formData.skills, skill])}
-                onRemoveSkill={(skill) => handleInputChange('skills', formData.skills.filter(s => s !== skill))}
-              />
-
+              {/* Experience Section */}
               <div>
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'} mb-2`}>Experience</h2>
-                {formData.experiences.map((experience, index) => (
+                <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Professional Experience</h2>
+                {Array.isArray(formData.experiences) && formData.experiences.map((experience, index) => (
                   <ExperienceCard
                     key={index}
                     experience={experience}
@@ -525,14 +552,40 @@ function InterviewForm({ darkMode, onLogout }) {
                     darkMode={darkMode}
                   />
                 ))}
-                <Button onClick={addExperience} className="mt-2">
-                  <FaPlus className="mr-2" /> Add Experience
-                </Button>
+                <div className="flex justify-center mt-4">
+                  <Button onClick={addExperience} variant="outline" className="w-full sm:w-auto">
+                    <FaPlus className="mr-2" /> Add Experience
+                  </Button>
+                </div>
               </div>
 
+              <Separator className="my-8" />
+
+              {/* Education Section */}
               <div>
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-black'} mb-2`}>Projects</h2>
-                {formData.projects.map((project, index) => (
+                <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Education</h2>
+                {Array.isArray(formData.educations) && formData.educations.map((education, index) => (
+                  <EducationCard
+                    key={index}
+                    education={education}
+                    onEdit={(updatedEducation) => editEducation(index, updatedEducation)}
+                    onDelete={() => deleteEducation(index)}
+                    darkMode={darkMode}
+                  />
+                ))}
+                <div className="flex justify-center mt-4">
+                  <Button onClick={addEducation} variant="outline" className="w-full sm:w-auto">
+                    <FaPlus className="mr-2" /> Add Education
+                  </Button>
+                </div>
+              </div>
+
+              <Separator className="my-8" />
+
+              {/* Projects Section */}
+              <div>
+                <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Projects</h2>
+                {Array.isArray(formData.projects) && formData.projects.map((project, index) => (
                   <ProjectCard
                     key={index}
                     project={project}
@@ -541,43 +594,39 @@ function InterviewForm({ darkMode, onLogout }) {
                     darkMode={darkMode}
                   />
                 ))}
-                <Button onClick={addProject} className="mt-2">
-                  <FaPlus className="mr-2" /> Add Project
-                </Button>
+                <div className="flex justify-center mt-4">
+                  <Button onClick={addProject} variant="outline" className="w-full sm:w-auto">
+                    <FaPlus className="mr-2" /> Add Project
+                  </Button>
+                </div>
               </div>
 
-              <EditableCard
-                title="Education"
-                content={formData.education}
-                onEdit={(value) => handleInputChange('education', value)}
-              />
+              <Separator className="my-8" />
 
-              <EditableCard
-                title="LinkedIn Profile"
-                content={formData.linkedin}
-                onEdit={(value) => handleInputChange('linkedin', value)}
-                icon={<FaLinkedin />}
-              />
+              {/* Certifications Section */}
+              <div>
+                <Label htmlFor="certifications" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Certifications</Label>
+                <div className="mt-1">
+                  <Textarea
+                    id="certifications"
+                    placeholder="List your certifications (one per line)"
+                    value={formData.certifications}
+                    onChange={(e) => handleInputChange('certifications', e.target.value)}
+                    rows="4"
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mt-1 block w-full sm:text-sm border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
 
-              <EditableCard
-                title="GitHub Profile"
-                content={formData.github}
-                onEdit={(value) => handleInputChange('github', value)}
-                icon={<FaGithub />}
-              />
-
-              <EditableCard
-                title="Certifications"
-                content={formData.certifications}
-                onEdit={(value) => handleInputChange('certifications', value)}
-              />
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Submitting...' : 'Submit Application'}
-              </Button>
+              {/* Submit Button */}
+              <div className="flex justify-center mt-8">
+                <Button type="submit" className="w-full sm:w-auto px-8 py-3 text-lg" disabled={loading}>
+                  {loading ? 'Submitting...' : 'Submit Application'}
+                </Button>
+              </div>
             </form>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </section>
   );

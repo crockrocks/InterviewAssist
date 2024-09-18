@@ -7,7 +7,7 @@ mongo_uri = "mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb
 client = MongoClient(mongo_uri)
 
 db_name = "SIH"
-collections_to_clear = ["candidate", "employee", "interview"] 
+collections_to_clear = ["User", "Employee", "Interview"] 
 
 db = client[db_name]
 
