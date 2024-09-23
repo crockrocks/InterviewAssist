@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
+function LoginForm({ onAlternateLoginSuccess, darkMode }) {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
   const [isEmployee, setIsEmployee] = useState(false);
   const [employeeId, setEmployeeId] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();  
 
   const toggleForm = () => {
     setIsLogin(!isLogin);
@@ -39,7 +41,7 @@ function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
 
     if (isLogin) {
       if (email === testUser.email && password === testUser.password) {
-        onLoginSuccess();
+        navigate('/dashboard/testuser');  
         return;
       } else if (email === altUser.email && password === altUser.password) {
         onAlternateLoginSuccess();
@@ -49,7 +51,7 @@ function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
       try {
         const response = await axios.post('http://127.0.0.1:5000/api/login', { email, password });
         if (response.data.success) {
-          onLoginSuccess();
+          navigate(`/dashboard/${response.data.userId}`); 
         } else {
           setMessage(response.data.message || 'Login failed');
         }
@@ -76,7 +78,7 @@ function LoginForm({ onLoginSuccess, onAlternateLoginSuccess, darkMode }) {
           if (response.data.is_employee) {
             setMessage(prevMessage => `${prevMessage} Employee code: ${response.data.employee_code}`);
           }
-          // You might want to automatically log in the user here or redirect them to login
+          navigate('/interview');  
         } else {
           setMessage(response.data.message || 'Sign-up failed');
         }

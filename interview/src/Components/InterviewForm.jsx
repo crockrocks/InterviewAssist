@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import {useNavigate} from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaLinkedin, FaGithub, FaFileUpload } from 'react-icons/fa';
 import axios from 'axios'; 
 import {
@@ -205,6 +206,7 @@ function InterviewForm({ darkMode, onLogout }) {
   });
 
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -308,21 +310,37 @@ function InterviewForm({ darkMode, onLogout }) {
         if (response.data && response.data.success) {
           const parsedData = response.data.parsed_data;
           
-          // Update form state with parsed data
           setFormData(prev => ({
             ...prev,
             name: parsedData.name || '',
             email: parsedData.email || '',
             phone: parsedData.phone || '',
             position: parsedData.position || '',
-            linkedin: parsedData.linkedin || '',
-            github: parsedData.github || '',
+            linkedin: parsedData.linkedin_url || '',
+            github: parsedData.github_url || '',
             skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
-            experiences: Array.isArray(parsedData.experiences) ? parsedData.experiences : [],
-            educations: Array.isArray(parsedData.educations) ? parsedData.educations : [],
-            projects: Array.isArray(parsedData.projects) ? parsedData.projects : [],
-            certifications: typeof parsedData.certifications === 'string' ? parsedData.certifications : '',
-            coverLetter: parsedData.coverLetter || '',
+            experiences: Array.isArray(parsedData.experiences) 
+              ? parsedData.experiences.map(exp => ({
+                  company: exp.company || '',
+                  duration: exp.duration || '',
+                  responsibilities: Array.isArray(exp.responsibilities) ? exp.responsibilities : []
+                }))
+              : [],
+            educations: Array.isArray(parsedData.education)
+              ? parsedData.education.map(edu => ({
+                  institution: edu.institution || '',
+                  degree: edu.degree || '',
+                  year: edu.year || ''
+                }))
+              : [],
+            projects: Array.isArray(parsedData.projects)
+              ? parsedData.projects.map(proj => ({
+                  name: proj.name || '',
+                  details: Array.isArray(proj.details) ? proj.details : []
+                }))
+              : [],
+            certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications.join('\n') : '',
+            coverLetter: parsedData.cover_letter || '',
             resume: file,
           }));
   
@@ -343,27 +361,35 @@ function InterviewForm({ darkMode, onLogout }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+  
     const submitFormData = new FormData();
-    for (const key in formData) {
-      if (key === 'resume') {
-        submitFormData.append(key, formData[key]);
-      } else if (Array.isArray(formData[key])) {
-        submitFormData.append(key, JSON.stringify(formData[key]));
-      } else {
-        submitFormData.append(key, formData[key]);
-      }
+  
+    const basicFields = ['name', 'email', 'phone', 'position', 'linkedin', 'github', 'coverLetter'];
+    basicFields.forEach(field => {
+      submitFormData.append(field, formData[field] || '');
+    });
+  
+    const arrayFields = ['skills', 'experiences', 'projects', 'educations'];
+    arrayFields.forEach(field => {
+      submitFormData.append(field, JSON.stringify(formData[field] || []));
+    });
+  
+    submitFormData.append('certifications', JSON.stringify(formData.certifications.split('\n').filter(cert => cert.trim() !== '')));
+  
+    if (formData.resume) {
+      submitFormData.append('resume', formData.resume);
     }
-
+  
     try {
       const response = await axios.post('http://localhost:5000/api/submit-interview', submitFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-
+  
       if (response.data.success) {
         alert('Form submitted successfully!');
+        navigate(`/dashboard/${response.data.user_id}`);
       } else {
         alert('Failed to submit form. Please try again.');
       }
@@ -374,7 +400,6 @@ function InterviewForm({ darkMode, onLogout }) {
       setLoading(false);
     }
   };
-
  
   return (
     <section className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} min-h-screen py-12`}>

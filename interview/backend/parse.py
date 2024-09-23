@@ -76,22 +76,13 @@ def parse_resume(text):
     llm = initialize_llm()
     prompt_template = create_prompt_template()
     llm_chain = initialize_llm_chain(llm, prompt_template)
-
     response = llm_chain.invoke({"resume_text": text})
-
-    # Extract the raw response text
     raw_response = response.get('text', '')
-
     if not raw_response:
         print("Error: LLM did not return any text.")
         return {}
-
-    # Remove any markdown-like code blocks (e.g., triple backticks)
     clean_response = re.sub(r'```(?:json)?', '', raw_response).strip()
-
-    # Try to extract the first valid JSON block from the response
     try:
-        # Find the first occurrence of '{' and the last occurrence of '}' to get the JSON content
         json_start = clean_response.find('{')
         json_end = clean_response.rfind('}') + 1
 
@@ -99,15 +90,11 @@ def parse_resume(text):
             raise ValueError("No valid JSON found in the response.")
 
         json_content = clean_response[json_start:json_end]
-
-        # Attempt to parse the extracted JSON
         parsed_data = json.loads(json_content)
         return parsed_data
     except (json.JSONDecodeError, ValueError) as e:
         print(f"JSON parsing failed: {e}")
-
-    # If parsing fails, return an empty dictionary as fallback
-    print("Unable to parse the response. Returning an empty dictionary.")
+    print("Unable to parse the response.")
     return {}
 
 
@@ -121,20 +108,13 @@ def save_parsed_resume(parsed_data):
 
     print(f"Resume details saved to {file_name}")
 
-# Example of usage
+
 if __name__ == "__main__":
     resume_text = """
-    Harsh Pant
-    V3S Indralok, Indirapuram, Uttar Pradesh, 201014
-    Ó +91 9910222161
-    R harshpant3703@gmail.com
-    ¯ linkedin.com/in/harsh-pant2003
-    github.com/crockrocks
-    EDUCATION
-    Gautam Buddha University
-    Bachelor of Technology in Artificial Intelligence
-    Sept. 2021 – July 2025
-    Greater Noida, Uttar Pradesh
+    Random random
+    Random
+    Ó 182091283
+    R random@gmail.com
     EXPERIENCE
     PharynxAI
     June 2024 – Present
@@ -148,8 +128,5 @@ if __name__ == "__main__":
     improved image generation and upscaling quality.
     """
 
-    # Parse the resume
     parsed_resume = parse_resume(resume_text)
-    
-    # Save the parsed resume to a JSON file
     save_parsed_resume(parsed_resume)

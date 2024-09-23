@@ -4,6 +4,9 @@ from pymongo import MongoClient
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 import os
+import json
+from bson import ObjectId
+from bson.errors import InvalidId  # Import InvalidId for ObjectId validation
 from parse import extract_text_from_pdf, parse_resume
 from llm import get_candidate_data, generate_summary
 
@@ -11,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+ALLOWED_EXTENSIONS = {'pdf'}
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -95,9 +98,11 @@ def parse_resume_route():
         return jsonify({'success': False, 'message': 'Error parsing resume.', 'error': str(e)}), 500
 
 
+
 @app.route('/api/submit-interview', methods=['POST'])
 def submit_interview():
     try:
+        # Basic fields
         name = request.form.get('name')
         email = request.form.get('email')
         phone = request.form.get('phone')
@@ -105,19 +110,22 @@ def submit_interview():
         linkedin = request.form.get('linkedin')
         github = request.form.get('github')
         coverLetter = request.form.get('coverLetter')
-        skills = request.form.get('skills')
-        experience = request.form.get('experiences')
-        projects = request.form.get('projects')
-        resume = request.files.get('resume')
-        certifications = request.form.get('certifications')
 
+        # Array fields
+        skills = json.loads(request.form.get('skills', '[]'))
+        experiences = json.loads(request.form.get('experiences', '[]'))
+        projects = json.loads(request.form.get('projects', '[]'))
+        educations = json.loads(request.form.get('educations', '[]'))
+        certifications = json.loads(request.form.get('certifications', '[]'))
+
+        # Resume file handling
+        resume = request.files.get('resume')
         filename = None
-        if resume:
+        if resume and allowed_file(resume.filename):
             filename = f"{name}_{resume.filename}"
             resume_path = os.path.join(UPLOAD_FOLDER, filename)
             resume.save(resume_path)
 
-        # Prepare the interview data
         interview_data = {
             'name': name,
             'email': email,
@@ -127,20 +135,47 @@ def submit_interview():
             'github': github,
             'coverLetter': coverLetter,
             'skills': skills,
-            'experience': experience,
+            'experiences': experiences,
+            'projects': projects,
+            'educations': educations,
             'resume_filename': filename,
             'certifications': certifications
         }
 
-        interviews_collection.insert_one(interview_data)
+        result = resume_collection.insert_one(interview_data)
+        user_id = str(result.inserted_id)
 
-        return jsonify({'success': True, 'message': 'Interview submission successful.'})
+        return jsonify({
+            'success': True, 
+            'message': 'Interview submission successful.',
+            'user_id': user_id
+        })
 
+    except json.JSONDecodeError as e:
+        print(f"JSON decoding error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Invalid JSON data.', 'error': str(e)}), 400
     except Exception as e:
+        print(f"Error during interview submission: {str(e)}")
         return jsonify({'success': False, 'message': 'Error during interview submission.', 'error': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/api/user/<user_id>', methods=['GET'])
+def get_user_data(user_id):
+    try:
+        if not ObjectId.is_valid(user_id):
+            return jsonify({'error': 'Invalid user ID format'}), 400
 
+        user_object_id = ObjectId(user_id)
+        user_data = resume_collection.find_one({'_id': user_object_id})
+
+        if user_data:
+            user_data['_id'] = str(user_data['_id'])
+            return jsonify(user_data)
+        else:
+            return jsonify({'error': 'User not found'}), 404
+
+    except Exception as e:
+        print(f"Error fetching user data: {str(e)}")
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+        
 if __name__ == '__main__':
     app.run(debug=True)
