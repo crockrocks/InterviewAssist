@@ -63,8 +63,21 @@ def login():
     data = request.json
     user = users_collection.find_one({'email': data['email']})
     if user and check_password_hash(user['password'], data['password']):
-        return jsonify({'success': True})
-    return jsonify({'success': False}), 401
+        resume_data = resume_collection.find_one({'email': data['email']})
+        
+        response_data = {
+            'success': True,
+            'userId': str(user['_id']),
+            'isEmployee': user.get('employee', False),
+            'employeeCode': user.get('emp_code')
+        }
+        
+        if resume_data:
+            resume_data.pop('_id', None)
+            response_data['resumeData'] = resume_data
+        
+        return jsonify(response_data)
+    return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
 
 @app.route('/api/parse-resume', methods=['POST'])
 def parse_resume_route():
@@ -145,10 +158,14 @@ def submit_interview():
         result = resume_collection.insert_one(interview_data)
         user_id = str(result.inserted_id)
 
+        user_data = resume_collection.find_one({'_id': result.inserted_id})
+        user_data['_id'] = str(user_data['_id'])  # Convert ObjectId to string
+
         return jsonify({
             'success': True, 
             'message': 'Interview submission successful.',
-            'user_id': user_id
+            'user_id': user_id,
+            'userData': user_data
         })
 
     except json.JSONDecodeError as e:
