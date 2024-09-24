@@ -28,30 +28,28 @@ function LoginForm({ onAlternateLoginSuccess, darkMode }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
-
-    const testUser = {
-      email: 'test@example.com',
-      password: 'test',
-    };
-
-    const altUser = {
-      email: 'client@example.com',
-      password: 'client',
-    };
-
+  
     if (isLogin) {
+      // Login flow
+      const testUser = { email: 'test@example.com', password: 'test' };
+      const altUser = { email: 'client@example.com', password: 'client' };
+  
       if (email === testUser.email && password === testUser.password) {
-        navigate('/dashboard/testuser');  
+        navigate('/dashboard/testuser');
         return;
       } else if (email === altUser.email && password === altUser.password) {
         onAlternateLoginSuccess();
+        navigate('/dashboard/client');
         return;
       }
-
+  
       try {
-        const response = await axios.post('http://127.0.0.1:5000/api/login', { email, password });
+        const response = await axios.post('http://localhost:5000/api/login', { email, password });
         if (response.data.success) {
-          navigate(`/dashboard/${response.data.userId}`); 
+          if (response.data.resumeData) {
+            localStorage.setItem('userResumeData', JSON.stringify(response.data.resumeData));
+          }
+          navigate(`/dashboard/${response.data.userId}`);
         } else {
           setMessage(response.data.message || 'Login failed');
         }
@@ -60,25 +58,27 @@ function LoginForm({ onAlternateLoginSuccess, darkMode }) {
         setMessage(error.response?.data?.message || 'Login failed. Please try again.');
       }
     } else {
+      // Signup flow
       if (password !== reEnterPassword) {
-        setMessage('Passwords do not match');
+        setMessage("Passwords do not match.");
         return;
       }
-
+  
       try {
-        const response = await axios.post('http://127.0.0.1:5000/api/register', { 
+        const response = await axios.post('http://127.0.0.1:5000/api/register', {
           name,
-          email, 
+          email,
           password,
           isEmployee,
           employeeId: isEmployee ? employeeId : undefined
         });
+  
         if (response.data.success) {
           setMessage(response.data.message);
           if (response.data.is_employee) {
             setMessage(prevMessage => `${prevMessage} Employee code: ${response.data.employee_code}`);
           }
-          navigate('/interview');  
+          navigate('/interview');
         } else {
           setMessage(response.data.message || 'Sign-up failed');
         }
@@ -88,6 +88,7 @@ function LoginForm({ onAlternateLoginSuccess, darkMode }) {
       }
     }
   };
+
 
   return (
     <section className={`${darkMode ? 'bg-dark-background' : 'bg-light-background'} min-h-screen`}>

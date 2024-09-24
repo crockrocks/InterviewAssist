@@ -388,6 +388,7 @@ function InterviewForm({ darkMode, onLogout }) {
       });
   
       if (response.data.success) {
+        localStorage.setItem('userResumeData', JSON.stringify(response.data.userData));
         alert('Form submitted successfully!');
         navigate(`/dashboard/${response.data.user_id}`);
       } else {

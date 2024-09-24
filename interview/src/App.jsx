@@ -19,19 +19,19 @@ function App() {
   }, [darkMode]);
 
   const handleLoginSuccess = () => {
-
+    setIsAltLoggedIn(false);  
   };
 
   const handleSignUpSuccess = () => {
-
+    setIsAltLoggedIn(false);  
   };
 
   const handleInterviewComplete = () => {
-
+    setIsAltLoggedIn(false);  
   };
 
   const handleAlternateLoginSuccess = () => {
-
+    setIsAltLoggedIn(true); 
   };
 
   return (
@@ -39,7 +39,12 @@ function App() {
       <div className={`min-h-screen ${darkMode ? 'bg-dark-background text-dark-text' : 'bg-light-background text-light-text'}`}>
         <Header darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} />
         {isAltLoggedIn ? (
-          <AlternatePage darkMode={darkMode} />
+          <Routes>
+            <Route
+              path="/dashboard/client"
+              element={<AlternatePage darkMode={darkMode} />}  
+            />
+          </Routes>
         ) : (
           <Routes>
             <Route
@@ -48,7 +53,7 @@ function App() {
                 <LoginForm 
                   onLoginSuccess={handleLoginSuccess}
                   onSignUpSuccess={handleSignUpSuccess}
-                  onAlternateLoginSuccess={handleAlternateLoginSuccess}
+                  onAlternateLoginSuccess={handleAlternateLoginSuccess} 
                   darkMode={darkMode}
                 />
               }
