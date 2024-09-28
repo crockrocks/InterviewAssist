@@ -27,6 +27,7 @@ users_collection = db['User']
 employee_collection = db['Employee']
 interviews_collection = db['Interview']
 resume_collection = db['UserResume']
+job_openings_collection = db['JobOpening']
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -193,6 +194,71 @@ def get_user_data(user_id):
     except Exception as e:
         print(f"Error fetching user data: {str(e)}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+@app.route('/api/job-openings', methods=['GET'])
+def get_job_openings():
+    try:
+        job_openings = list(job_openings_collection.find())
+        for job in job_openings:
+            job['_id'] = str(job['_id'])
+        return jsonify(job_openings), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/job-openings', methods=['POST'])
+def create_job_opening():
+    try:
+        job_data = request.json
+        result = job_openings_collection.insert_one(job_data)
+        job_data['_id'] = str(result.inserted_id)
+        return jsonify(job_data), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/job-openings/<job_id>', methods=['PUT'])
+def update_job_opening(job_id):
+    try:
+        job_data = request.json
+        result = job_openings_collection.update_one(
+            {'_id': ObjectId(job_id)},
+            {'$set': job_data}
+        )
+        if result.modified_count:
+            return jsonify({'message': 'Job opening updated successfully'}), 200
+        else:
+            return jsonify({'message': 'No job opening found with that ID'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/job-openings/<job_id>', methods=['DELETE'])
+def delete_job_opening(job_id):
+    try:
+        result = job_openings_collection.delete_one({'_id': ObjectId(job_id)})
+        if result.deleted_count:
+            return jsonify({'message': 'Job opening deleted successfully'}), 200
+        else:
+            return jsonify({'message': 'No job opening found with that ID'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/job-openings/<job_id>/apply', methods=['POST'])
+def apply_for_job(job_id):
+    try:
+        applicant_email = request.json.get('email')
+        if not applicant_email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        result = job_openings_collection.update_one(
+            {'_id': ObjectId(job_id)},
+            {'$addToSet': {'applicants': applicant_email}}
+        )
+
+        if result.modified_count:
+            return jsonify({'message': 'Application submitted successfully'}), 200
+        else:
+            return jsonify({'message': 'No job opening found with that ID or already applied'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
         
 if __name__ == '__main__':
     app.run(debug=True)

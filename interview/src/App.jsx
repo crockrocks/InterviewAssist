@@ -5,6 +5,7 @@ import InterviewForm from './Components/InterviewForm';
 import Header from './Components/Header';
 import AlternatePage from './Components/AlternatePage';
 import Dashboard from './Components/Dashboard';
+import CandidateDetailsPage from './Components/CandidateDetails';
 
 function App() {
   const [isAltLoggedIn, setIsAltLoggedIn] = useState(false);
@@ -19,57 +20,56 @@ function App() {
   }, [darkMode]);
 
   const handleLoginSuccess = () => {
-    setIsAltLoggedIn(false);  
+    setIsAltLoggedIn(false);
   };
 
   const handleSignUpSuccess = () => {
-    setIsAltLoggedIn(false);  
+    setIsAltLoggedIn(false);
   };
 
   const handleInterviewComplete = () => {
-    setIsAltLoggedIn(false);  
+    setIsAltLoggedIn(false);
   };
 
   const handleAlternateLoginSuccess = () => {
-    setIsAltLoggedIn(true); 
+    setIsAltLoggedIn(true);
   };
 
   return (
     <Router>
       <div className={`min-h-screen ${darkMode ? 'bg-dark-background text-dark-text' : 'bg-light-background text-light-text'}`}>
         <Header darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} />
-        {isAltLoggedIn ? (
-          <Routes>
-            <Route
-              path="/dashboard/client"
-              element={<AlternatePage darkMode={darkMode} />}  
-            />
-          </Routes>
-        ) : (
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <LoginForm 
-                  onLoginSuccess={handleLoginSuccess}
-                  onSignUpSuccess={handleSignUpSuccess}
-                  onAlternateLoginSuccess={handleAlternateLoginSuccess} 
-                  darkMode={darkMode}
-                />
-              }
-            />
-            <Route
-              path="/interview"
-              element={
-                <InterviewForm onComplete={handleInterviewComplete} darkMode={darkMode} />
-              }
-            />
-            <Route
-              path="/dashboard/:userId"
-              element={<Dashboard darkMode={darkMode} />}
-            />
-          </Routes>
-        )}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <LoginForm
+                onLoginSuccess={handleLoginSuccess}
+                onSignUpSuccess={handleSignUpSuccess}
+                onAlternateLoginSuccess={handleAlternateLoginSuccess}
+                darkMode={darkMode}
+              />
+            }
+          />
+          <Route
+            path="/interview"
+            element={
+              <InterviewForm onComplete={handleInterviewComplete} darkMode={darkMode} />
+            }
+          />
+          <Route
+            path="/dashboard/:userId"
+            element={<Dashboard darkMode={darkMode} />}
+          />
+          <Route
+            path="/dashboard/client"
+            element={<AlternatePage darkMode={darkMode} />}
+          />
+          <Route
+            path="/job/:jobId/candidates"
+            element={<CandidateDetailsPage darkMode={darkMode} />}
+          />
+        </Routes>
       </div>
     </Router>
   );

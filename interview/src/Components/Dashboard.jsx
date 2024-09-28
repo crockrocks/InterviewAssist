@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -9,13 +9,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { userId } = useParams();
-
-  const [jobs, setJobs] = useState([
-    { id: 1, title: 'Software Engineer', company: 'DRDO', description: 'Develop cutting-edge software solutions.' },
-    { id: 2, title: 'Data Analyst', company: 'DRDO RAC', description: 'Analyze complex datasets to derive insights.' },
-    { id: 3, title: 'UX Designer', company: 'DRDO', description: 'Create intuitive user experiences for web and mobile apps.' },
-  ]);
-
+  const [jobs, setJobs] = useState([]);
   const [appliedJobs, setAppliedJobs] = useState([]);
 
   useEffect(() => {
@@ -25,37 +19,70 @@ const Dashboard = () => {
         setIsLoading(false);
         return;
       }
-      
+
       const storedResumeData = localStorage.getItem('userResumeData');
       if (storedResumeData) {
         setUserData(JSON.parse(storedResumeData));
-        setIsLoading(false);
       } else {
         try {
           const response = await axios.get(`http://localhost:5000/api/user/${userId}`);
           setUserData(response.data);
-
           localStorage.setItem('userResumeData', JSON.stringify(response.data));
         } catch (error) {
           console.error('Error fetching user data:', error);
           setError(error.response?.data?.error || 'Unable to fetch user data.');
-        } finally {
-          setIsLoading(false);
         }
       }
     };
+
+    const fetchJobs = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/job-openings');
+        const allJobs = response.data;
+
+
+        const storedAppliedJobs = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+        const appliedJobIds = new Set(storedAppliedJobs.map(job => job._id));
+        const applied = allJobs.filter(job => appliedJobIds.has(job._id));
+        const available = allJobs.filter(job => !appliedJobIds.has(job._id));
+
+        setAppliedJobs(applied);
+        setJobs(available);
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+        setError('Unable to fetch job openings.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchUserData();
+    fetchJobs();
   }, [userId]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const applyForJob = (jobId) => {
-    const jobToApply = jobs.find((job) => job.id === jobId);
-    if (jobToApply) {
-      setAppliedJobs([...appliedJobs, jobToApply]);
-      setJobs(jobs.filter((job) => job.id !== jobId));
+  const applyForJob = async (jobId) => {
+    const jobToApply = jobs.find((job) => job._id === jobId);
+    if (jobToApply && userData) {
+      try {
+        await axios.post(`http://localhost:5000/api/job-openings/${jobId}/apply`, {
+          email: userData.email
+        });
+
+        // Update state
+        setAppliedJobs([...appliedJobs, jobToApply]);
+        setJobs(jobs.filter((job) => job._id !== jobId));
+
+        // Update local storage
+        const updatedAppliedJobs = [...appliedJobs, jobToApply];
+        localStorage.setItem('appliedJobs', JSON.stringify(updatedAppliedJobs));
+      } catch (error) {
+        console.error('Error applying for job:', error);
+        setError('Unable to apply for the job. Please try again.');
+      }
     }
   };
 
@@ -101,46 +128,55 @@ const Dashboard = () => {
 
       {/* Main content */}
       <div className="flex-1 overflow-auto p-8">
-        <h1 className="text-3xl font-bold mb-6">Welcome, {userData.name || 'User'}!</h1>
+        <h1 className="text-3xl font-bold mb-8">Welcome, {userData.name || 'User'}!</h1>
 
         {/* Available Openings */}
-        <h2 className="text-2xl font-semibold mb-4">Available Openings</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.map((job) => (
-            <div key={job.id} className="bg-white dark:bg-gray-700 shadow-md rounded px-8 pt-6 pb-8">
-              <h2 className="text-2xl font-semibold mb-2">{job.title}</h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-2">{job.company}</p>
-              <p className="mb-4">{job.description}</p>
-              <button 
-                onClick={() => applyForJob(job.id)} 
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Apply
-              </button>
-            </div>
-          ))}
-        </div>
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6">Available Openings</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {jobs.map((job) => (
+              <JobCard key={job._id} job={job} onApply={() => applyForJob(job._id)} />
+            ))}
+          </div>
+        </section>
 
         {/* Applied Jobs */}
-        {appliedJobs.length > 0 && (
-          <>
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Applied Jobs</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {appliedJobs.map((job) => (
-                <div key={job.id} className="bg-white dark:bg-gray-700 shadow-md rounded px-8 pt-6 pb-8">
-                  <h2 className="text-2xl font-semibold mb-2">{job.title}</h2>
-                  <p className="text-gray-600 dark:text-gray-300 mb-2">{job.company}</p>
-                  <p className="mb-4">{job.description}</p>
-                  <p className="text-green-600 dark:text-green-300 font-bold">Applied</p>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+        <section>
+          <h2 className="text-2xl font-semibold mt-8 mb-6">Applied Jobs</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {appliedJobs.map((job) => (
+              <JobCard key={job._id} job={job} applied />
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
 };
+
+const JobCard = ({ job, onApply, applied }) => (
+  <div className="bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden transition transform hover:shadow-xl">
+    <div className="p-6">
+      <h3 className="text-2xl font-semibold mb-2 text-gray-900 dark:text-white">{job.title}</h3>
+      <p className="text-gray-600 dark:text-gray-300 mb-4">{job.company}</p>
+      <p className="mb-2 text-gray-700 dark:text-gray-300">{job.shortDescription}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">Pay: {job.pay}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">Level: {job.level}</p>
+    </div>
+    <div className="px-6 py-4 bg-gray-50 dark:bg-gray-600">
+      {applied ? (
+        <p className="text-green-600 dark:text-green-400 font-bold">Applied</p>
+      ) : (
+        <button
+          onClick={onApply}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Apply
+        </button>
+      )}
+    </div>
+  </div>
+);
 
 const LoadingSkeleton = () => (
   <div className="flex h-screen dark:bg-gray-800">
