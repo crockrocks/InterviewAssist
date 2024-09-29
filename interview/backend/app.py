@@ -6,9 +6,8 @@ from werkzeug.utils import secure_filename
 import os
 import json
 from bson import ObjectId
-from bson.errors import InvalidId  # Import InvalidId for ObjectId validation
-from parse import extract_text_from_pdf, parse_resume
-from llm import get_candidate_data, generate_summary
+from bson.errors import InvalidId
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -23,15 +22,13 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
-users_collection = db['user'] #user
-# employee_collection = db['employee']  # removed
-interviews_collection = db['interview']
 users_collection = db['User']
 resume_collection = db['UserResume']
 job_openings_collection = db['JobOpening']
+application_collection = db['application']
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower()
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -81,102 +78,6 @@ def login():
         return jsonify(response_data)
     return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
 
-@app.route('/api/parse-resume', methods=['POST'])
-def parse_resume_route():
-    if 'resume' not in request.files:
-        return jsonify({'success': False, 'message': 'No resume file provided.'}), 400
-
-    resume = request.files['resume']
-    if resume.filename == '':
-        return jsonify({'success': False, 'message': 'No selected file.'}), 400
-
-    if not allowed_file(resume.filename):
-        return jsonify({'success': False, 'message': 'Invalid file type. Only PDF files are allowed.'}), 400
-
-    filename = secure_filename(f"temp_{os.urandom(8).hex()}_{resume.filename}")
-    resume_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    resume.save(resume_path)
-
-    try:
-        text = extract_text_from_pdf(resume_path)
-        if not text:
-            raise ValueError("No text extracted from the document")
-        parsed_data = parse_resume(text)
-        print(parsed_data)
-        os.remove(resume_path)
-        return jsonify({'success': True, 'parsed_data': parsed_data})
-        
-    except Exception as e:
-        if os.path.exists(resume_path):
-            os.remove(resume_path)
-        print(f"Error during resume parsing: {str(e)}")
-        return jsonify({'success': False, 'message': 'Error parsing resume.', 'error': str(e)}), 500
-
-
-
-@app.route('/api/submit-interview', methods=['POST'])
-def submit_interview():
-    try:
-        # Basic fields
-        name = request.form.get('name')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
-        position = request.form.get('position')
-        linkedin = request.form.get('linkedin')
-        github = request.form.get('github')
-        coverLetter = request.form.get('coverLetter')
-
-        # Array fields
-        skills = json.loads(request.form.get('skills', '[]'))
-        experiences = json.loads(request.form.get('experiences', '[]'))
-        projects = json.loads(request.form.get('projects', '[]'))
-        educations = json.loads(request.form.get('educations', '[]'))
-        certifications = json.loads(request.form.get('certifications', '[]'))
-
-        # Resume file handling
-        resume = request.files.get('resume')
-        filename = None
-        if resume and allowed_file(resume.filename):
-            filename = f"{name}_{resume.filename}"
-            resume_path = os.path.join(UPLOAD_FOLDER, filename)
-            resume.save(resume_path)
-
-        interview_data = {
-            'name': name,
-            'email': email,
-            'phone': phone,
-            'position': position,
-            'linkedin': linkedin,
-            'github': github,
-            'coverLetter': coverLetter,
-            'skills': skills,
-            'experiences': experiences,
-            'projects': projects,
-            'educations': educations,
-            'resume_filename': filename,
-            'certifications': certifications
-        }
-
-        result = resume_collection.insert_one(interview_data)
-        user_id = str(result.inserted_id)
-
-        user_data = resume_collection.find_one({'_id': result.inserted_id})
-        user_data['_id'] = str(user_data['_id'])  # Convert ObjectId to string
-
-        return jsonify({
-            'success': True, 
-            'message': 'Interview submission successful.',
-            'user_id': user_id,
-            'userData': user_data
-        })
-
-    except json.JSONDecodeError as e:
-        print(f"JSON decoding error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Invalid JSON data.', 'error': str(e)}), 400
-    except Exception as e:
-        print(f"Error during interview submission: {str(e)}")
-        return jsonify({'success': False, 'message': 'Error during interview submission.', 'error': str(e)}), 500
-
 @app.route('/api/user/<user_id>', methods=['GET'])
 def get_user_data(user_id):
     try:
@@ -187,10 +88,11 @@ def get_user_data(user_id):
             return jsonify({'error': 'Invalid user ID format'}), 400
 
         user_object_id = ObjectId(user_id)
-        user_data = resume_collection.find_one({'_id': user_object_id})
+        user_data = users_collection.find_one({'_id': user_object_id})
 
         if user_data:
             user_data['_id'] = str(user_data['_id'])
+            user_data.pop('password', None)  # Remove password from the response
             return jsonify(user_data)
         else:
             return jsonify({'error': 'User not found'}), 404
@@ -207,6 +109,9 @@ def get_job_openings():
         job_openings = list(job_openings_collection.find())
         for job in job_openings:
             job['_id'] = str(job['_id'])
+            # Count the number of applicants for this job
+            applicant_count = application_collection.count_documents({'jobId': str(job['_id'])})
+            job['applicantCount'] = applicant_count
         return jsonify(job_openings), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -248,6 +153,57 @@ def get_job_opening(job_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/job-openings/<job_id>/candidates', methods=['GET'])
+def get_job_candidates(job_id):
+    try:
+        candidates = list(application_collection.find({'jobId': job_id}))
+        for candidate in candidates:
+            candidate['_id'] = str(candidate['_id'])
+            user = users_collection.find_one({'_id': ObjectId(candidate['userId'])})
+            if user:
+                candidate['name'] = user.get('name')
+            resume = resume_collection.find_one({'email': candidate['email']})
+            if resume:
+                candidate['resumeData'] = resume
+                candidate['resumeData']['_id'] = str(candidate['resumeData']['_id'])
+        return jsonify(candidates), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/job-openings/<job_id>/select-candidate', methods=['POST'])
+def select_candidate(job_id):
+    try:
+        applicant_email = request.json.get('email')
+        if not applicant_email:
+            return jsonify({'error': 'Email is required'}), 400
+        result = application_collection.update_one(
+            {'jobId': job_id, 'email': applicant_email},
+            {'$set': {'status': 'selected'}}
+        )
+        if result.modified_count:
+            return jsonify({'message': 'Candidate selected successfully'}), 200
+        else:
+            return jsonify({'message': 'No application found with that email for this job'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/job-openings/<job_id>/reject-candidate', methods=['POST'])
+def reject_candidate(job_id):
+    try:
+        applicant_email = request.json.get('email')
+        if not applicant_email:
+            return jsonify({'error': 'Email is required'}), 400
+        result = application_collection.update_one(
+            {'jobId': job_id, 'email': applicant_email},
+            {'$set': {'status': 'rejected'}}
+        )
+        if result.modified_count:
+            return jsonify({'message': 'Candidate rejected successfully'}), 200
+        else:
+            return jsonify({'message': 'No application found with that email for this job'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+   
 @app.route('/api/job-openings/<job_id>', methods=['DELETE'])
 def delete_job_opening(job_id):
     try:
@@ -262,19 +218,56 @@ def delete_job_opening(job_id):
 @app.route('/api/job-openings/<job_id>/apply', methods=['POST'])
 def apply_for_job(job_id):
     try:
+        user_id = request.json.get('userId')
         applicant_email = request.json.get('email')
-        if not applicant_email:
-            return jsonify({'error': 'Email is required'}), 400
+        if not user_id or not applicant_email:
+            return jsonify({'error': 'User ID and email are required'}), 400
 
-        result = job_openings_collection.update_one(
-            {'_id': ObjectId(job_id)},
-            {'$addToSet': {'applicants': applicant_email}}
-        )
+        # Check if the user has already applied
+        existing_application = application_collection.find_one({'userId': user_id, 'jobId': job_id})
+        if existing_application:
+            return jsonify({'message': 'You have already applied for this job'}), 400
 
-        if result.modified_count:
-            return jsonify({'message': 'Application submitted successfully'}), 200
+        # Add the application
+        new_application = {
+            'userId': user_id,
+            'jobId': job_id,
+            'email': applicant_email,
+            'status': 'applied',
+            'appliedAt': datetime.utcnow()
+        }
+        result = application_collection.insert_one(new_application)
+
+        if result.inserted_id:
+            return jsonify({'message': 'Application submitted successfully', 'applicationId': str(result.inserted_id)}), 200
         else:
-            return jsonify({'message': 'No job opening found with that ID or already applied'}), 404
+            return jsonify({'error': 'Failed to submit application'}), 500
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/user-applications/<user_id>', methods=['GET'])
+def get_user_applications(user_id):
+    try:
+        # Fetch user applications
+        user_applications = list(application_collection.find({'userId': user_id}))
+        
+        # Fetch job details for each application
+        for app in user_applications:
+            app['_id'] = str(app['_id'])
+            job = job_openings_collection.find_one({'_id': ObjectId(app['jobId'])})
+            if job:
+                app['jobDetails'] = {
+                    'title': job.get('title'),
+                    'company': job.get('company'),
+                    'shortDescription': job.get('shortDescription'),
+                    'pay': job.get('pay'),
+                    'level': job.get('level')
+                }
+            else:
+                app['jobDetails'] = None
+
+        return jsonify(user_applications), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -117,13 +117,14 @@ const AlternatePage = () => {
     };
 
     return (
-      <CustomCard>
+      <CustomCard onClick={handleCardClick}>
         <div className="p-6">
           <h3 className="text-2xl font-semibold mb-2 text-gray-900 dark:text-white">{job.title}</h3>
           <p className="text-gray-600 dark:text-gray-300 mb-4">{job.company}</p>
           <p className="mb-2 text-gray-700 dark:text-gray-300">{job.shortDescription}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Pay: {job.pay}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Level: {job.level}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Applicants: {job.applicantCount}</p>
         </div>
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 flex justify-between">
           <CustomButton
@@ -173,7 +174,7 @@ const AlternatePage = () => {
         <div className="p-6">
           <h3 className="text-2xl font-semibold mb-2 text-gray-900 dark:text-white">{job.title}</h3>
           <p className="text-gray-600 dark:text-gray-300 mb-4">{job.company}</p>
-          <p className="mb-2 text-gray-700 dark:text-gray-300">No. of applicants: {job.applicants?.length || 0}</p>
+          <p className="mb-2 text-gray-700 dark:text-gray-300">No. of applicants: {job.applicantCount}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Pay: {job.pay}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Level: {job.level}</p>
         </div>
@@ -187,7 +188,6 @@ const AlternatePage = () => {
       </CustomCard>
     );
   };
-
 
   return (
     <div className="min-h-screen bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text">
@@ -261,7 +261,7 @@ const AlternatePage = () => {
             transition={{ duration: 0.5, delay: 0.8 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {jobs.filter(job => job.applicants && job.applicants.length > 0).map((job, index) => (
+            {jobs.filter(job => job.applicantCount > 0).map((job, index) => (
               <motion.div
                 key={job._id}
                 initial={{ opacity: 0, y: 20 }}

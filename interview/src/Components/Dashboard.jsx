@@ -20,30 +20,32 @@ const Dashboard = () => {
         return;
       }
 
-      const storedResumeData = localStorage.getItem('userResumeData');
-      if (storedResumeData) {
-        setUserData(JSON.parse(storedResumeData));
-      } else {
-        try {
-          const response = await axios.get(`http://localhost:5000/api/user/${userId}`);
-          setUserData(response.data);
-          localStorage.setItem('userResumeData', JSON.stringify(response.data));
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setError(error.response?.data?.error || 'Unable to fetch user data.');
-        }
+      try {
+        const response = await axios.get(`http://localhost:5000/api/user/${userId}`);
+        setUserData(response.data);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setError(error.response?.data?.error || 'Unable to fetch user data.');
       }
     };
 
     const fetchJobs = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/job-openings');
-        const allJobs = response.data;
+        const [jobsResponse, userApplicationsResponse] = await Promise.all([
+          axios.get('http://localhost:5000/api/job-openings'),
+          axios.get(`http://localhost:5000/api/user-applications/${userId}`)
+        ]);
 
+        const allJobs = jobsResponse.data;
+        const userApplications = userApplicationsResponse.data;
 
-        const storedAppliedJobs = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
-        const appliedJobIds = new Set(storedAppliedJobs.map(job => job._id));
-        const applied = allJobs.filter(job => appliedJobIds.has(job._id));
+        const appliedJobIds = new Set(userApplications.map(app => app.jobId));
+
+        const applied = userApplications.map(app => ({
+          ...app.jobDetails,
+          _id: app.jobId,
+          status: app.status
+        }));
         const available = allJobs.filter(job => !appliedJobIds.has(job._id));
 
         setAppliedJobs(applied);
@@ -60,30 +62,43 @@ const Dashboard = () => {
     fetchJobs();
   }, [userId]);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
   const applyForJob = async (jobId) => {
-    const jobToApply = jobs.find((job) => job._id === jobId);
-    if (jobToApply && userData) {
+    if (userData) {
       try {
         await axios.post(`http://localhost:5000/api/job-openings/${jobId}/apply`, {
+          userId: userId,
           email: userData.email
         });
 
-        // Update state
-        setAppliedJobs([...appliedJobs, jobToApply]);
-        setJobs(jobs.filter((job) => job._id !== jobId));
+        // Refetch jobs to update the lists
+        const [jobsResponse, userApplicationsResponse] = await Promise.all([
+          axios.get('http://localhost:5000/api/job-openings'),
+          axios.get(`http://localhost:5000/api/user-applications/${userId}`)
+        ]);
 
-        // Update local storage
-        const updatedAppliedJobs = [...appliedJobs, jobToApply];
-        localStorage.setItem('appliedJobs', JSON.stringify(updatedAppliedJobs));
+        const allJobs = jobsResponse.data;
+        const userApplications = userApplicationsResponse.data;
+
+        const appliedJobIds = new Set(userApplications.map(app => app.jobId));
+
+        const applied = userApplications.map(app => ({
+          ...app.jobDetails,
+          _id: app.jobId,
+          status: app.status
+        }));
+        const available = allJobs.filter(job => !appliedJobIds.has(job._id));
+
+        setAppliedJobs(applied);
+        setJobs(available);
       } catch (error) {
         console.error('Error applying for job:', error);
         setError('Unable to apply for the job. Please try again.');
       }
     }
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   if (isLoading) {
@@ -145,7 +160,7 @@ const Dashboard = () => {
           <h2 className="text-2xl font-semibold mt-8 mb-6">Applied Jobs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {appliedJobs.map((job) => (
-              <JobCard key={job._id} job={job} applied />
+              <JobCard key={job._id} job={job} applied status={job.status} />
             ))}
           </div>
         </section>
@@ -154,7 +169,7 @@ const Dashboard = () => {
   );
 };
 
-const JobCard = ({ job, onApply, applied }) => (
+const JobCard = ({ job, onApply, applied, status }) => (
   <div className="bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden transition transform hover:shadow-xl">
     <div className="p-6">
       <h3 className="text-2xl font-semibold mb-2 text-gray-900 dark:text-white">{job.title}</h3>
@@ -165,7 +180,15 @@ const JobCard = ({ job, onApply, applied }) => (
     </div>
     <div className="px-6 py-4 bg-gray-50 dark:bg-gray-600">
       {applied ? (
-        <p className="text-green-600 dark:text-green-400 font-bold">Applied</p>
+        <p className={`font-bold ${
+          status === 'rejected' ? 'text-red-600 dark:text-red-400' :
+          status === 'selected' ? 'text-green-600 dark:text-green-400' :
+          'text-blue-600 dark:text-blue-400'
+        }`}>
+          {status === 'rejected' ? 'Rejected' :
+           status === 'selected' ? 'Selected' :
+           'Applied'}
+        </p>
       ) : (
         <button
           onClick={onApply}
