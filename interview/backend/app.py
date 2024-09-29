@@ -23,18 +23,15 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
-<<<<<<< HEAD
 users_collection = db['user'] #user
 # employee_collection = db['employee']  # removed
 interviews_collection = db['interview']
-=======
 users_collection = db['User']
 resume_collection = db['UserResume']
 job_openings_collection = db['JobOpening']
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
->>>>>>> ed8912fc56618b416d9ca38b9632b6ecc5b2707d
+    return '.' in filename and filename.rsplit('.', 1)[1].lower()
 
 @app.route('/api/register', methods=['POST'])
 def register():
