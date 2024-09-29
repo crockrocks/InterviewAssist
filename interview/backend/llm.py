@@ -57,11 +57,11 @@ def create_prompt_template():
         ]
     )
 
-# Initialize the LLM Chain
+
 def initialize_llm_chain(llm, prompt_template):
     return LLMChain(llm=llm, prompt=prompt_template, verbose=True)
 
-# Convert MongoDB data to JSON serializable format
+
 def make_serializable(data):
     if isinstance(data, dict):
         return {key: make_serializable(value) for key, value in data.items()}
@@ -72,7 +72,6 @@ def make_serializable(data):
     else:
         return data
 
-# Generate the technical summary for a given candidate
 def generate_summary(candidate_data):
     llm = initialize_llm()
     prompt_template = create_prompt_template()
@@ -107,13 +106,3 @@ def get_candidate_data(query):
     candidate_data = collection.find_one(query)
     return candidate_data
 
-if __name__ == "__main__":
-    # Example usage
-    query = {"name": {"$regex": "Harshit", "$options": "i"}}  # You can customize this query
-    candidate_data = get_candidate_data(query)
-
-    if candidate_data:
-        summary = generate_summary(candidate_data)
-        print("Technical Summary:\n", summary)
-    else:
-        print("Candidate not found.")
