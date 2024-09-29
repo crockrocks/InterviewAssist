@@ -24,8 +24,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
 users_collection = db['User']
-employee_collection = db['Employee']
-interviews_collection = db['Interview']
 resume_collection = db['UserResume']
 job_openings_collection = db['JobOpening']
 
@@ -179,6 +177,9 @@ def submit_interview():
 @app.route('/api/user/<user_id>', methods=['GET'])
 def get_user_data(user_id):
     try:
+        if not user_id or user_id == 'null':
+            return jsonify({'error': 'Invalid or missing user ID'}), 400
+
         if not ObjectId.is_valid(user_id):
             return jsonify({'error': 'Invalid user ID format'}), 400
 
@@ -191,6 +192,8 @@ def get_user_data(user_id):
         else:
             return jsonify({'error': 'User not found'}), 404
 
+    except InvalidId:
+        return jsonify({'error': 'Invalid user ID format'}), 400
     except Exception as e:
         print(f"Error fetching user data: {str(e)}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
@@ -230,6 +233,18 @@ def update_job_opening(job_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/job-openings/<job_id>', methods=['GET'])
+def get_job_opening(job_id):
+    try:
+        job = job_openings_collection.find_one({'_id': ObjectId(job_id)})
+        if job:
+            job['_id'] = str(job['_id'])
+            return jsonify(job), 200
+        else:
+            return jsonify({'error': 'Job not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/job-openings/<job_id>', methods=['DELETE'])
 def delete_job_opening(job_id):
     try:
@@ -259,6 +274,22 @@ def apply_for_job(job_id):
             return jsonify({'message': 'No job opening found with that ID or already applied'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-        
+
+@app.route('/api/user-resume', methods=['GET'])
+def get_user_resume():
+    email = request.args.get('email')
+    if not email:
+        return jsonify({'error': 'Email parameter is required'}), 400
+    
+    try:
+        user_resume = resume_collection.find_one({'email': email})
+        if user_resume:
+            user_resume['_id'] = str(user_resume['_id'])
+            return jsonify(user_resume), 200
+        else:
+            return jsonify({'error': 'User resume not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
