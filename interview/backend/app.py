@@ -15,7 +15,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
 db = client['SIH']
-users_collection = db['candidate'] #user
+users_collection = db['user'] #user
 # employee_collection = db['employee']  # removed
 interviews_collection = db['interview']
 
