@@ -1,13 +1,15 @@
 import pymongo
 from pymongo import MongoClient
+from dotenv import load_dotenv
+import os
 
 
-
-mongo_uri = "mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority" 
-client = MongoClient(mongo_uri)
+load_dotenv()
+uri = os.getenv("MONGO_URI")
+client = MongoClient(uri)
 
 db_name = "SIH"
-collections_to_clear = ["User", "Employee", "Interview"] 
+collections_to_clear = ["User","UserResume","application"] 
 
 db = client[db_name]
 

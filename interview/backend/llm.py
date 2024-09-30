@@ -8,7 +8,7 @@ from bson import ObjectId
 from config import Config
 from langchain_groq import ChatGroq
 
-# Initialize the LLM
+
 def initialize_llm():
     os.environ["GROQ_API_KEY"] = Config.GROQ_AI_KEY
     return ChatGroq(
@@ -19,7 +19,6 @@ def initialize_llm():
         max_retries=2,
     )
 
-# Create a prompt template for generating technical summaries
 def create_prompt_template():
     prompt_template = """
     You are a hiring expert and your task is to create a concise technical summary of the candidate based on the following schema.
