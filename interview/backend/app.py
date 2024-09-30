@@ -10,7 +10,13 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from datetime import datetime
 from score import summary_match
+from parse import extract_text_from_pdf, parse_resume
+from dotenv import load_dotenv
+import os
 
+
+load_dotenv()
+uri = os.getenv("MONGO_URI")
 app = Flask(__name__)
 CORS(app)
 
@@ -22,13 +28,14 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-client = MongoClient("mongodb+srv://anubhajarwal2003:Niharika021@candidates.fnkt3.mongodb.net/SIH?retryWrites=true&w=majority")
+client = MongoClient(uri)
 db = client['SIH']
 users_collection = db['User']
 resume_collection = db['UserResume']
 job_openings_collection = db['JobOpening']
 application_collection = db['application']
 employee_collection = db['Employee']
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -81,6 +88,100 @@ def login():
         return jsonify(response_data)
     return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
 
+@app.route('/api/parse-resume', methods=['POST'])
+def parse_resume_route():
+    if 'resume' not in request.files:
+        return jsonify({'success': False, 'message': 'No resume file provided.'}), 400
+
+    resume = request.files['resume']
+    if resume.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file.'}), 400
+
+    if not allowed_file(resume.filename):
+        return jsonify({'success': False, 'message': 'Invalid file type. Only PDF, DOC, and DOCX files are allowed.'}), 400
+
+    filename = secure_filename(f"temp_{os.urandom(8).hex()}_{resume.filename}")
+    resume_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    resume.save(resume_path)
+
+    try:
+        text = extract_text_from_pdf(resume_path)
+        if not text:
+            raise ValueError("No text extracted from the document")
+        parsed_data = parse_resume(text)
+        os.remove(resume_path)
+        return jsonify({'success': True, 'parsed_data': parsed_data})
+
+    except Exception as e:
+        if os.path.exists(resume_path):
+            os.remove(resume_path)
+        print(f"Error during resume parsing: {str(e)}")
+        return jsonify({'success': False, 'message': 'Error parsing resume.', 'error': str(e)}), 500
+
+@app.route('/api/submit-interview', methods=['POST'])
+def submit_interview():
+    try:
+        # Basic fields
+        name = request.form.get('name')
+        email = request.form.get('email')
+        phone = request.form.get('phone')
+        position = request.form.get('position')
+        linkedin = request.form.get('linkedin')
+        github = request.form.get('github')
+        coverLetter = request.form.get('coverLetter')
+
+        # Array fields
+        skills = json.loads(request.form.get('skills', '[]'))
+        experiences = json.loads(request.form.get('experiences', '[]'))
+        projects = json.loads(request.form.get('projects', '[]'))
+        educations = json.loads(request.form.get('educations', '[]'))
+        certifications = json.loads(request.form.get('certifications', '[]'))
+
+        # Resume file handling
+        resume = request.files.get('resume')
+        filename = None
+        if resume and allowed_file(resume.filename):
+            filename = secure_filename(f"{name}_{resume.filename}")
+            resume_path = os.path.join(UPLOAD_FOLDER, filename)
+            resume.save(resume_path)
+
+        interview_data = {
+            'name': name,
+            'email': email,
+            'phone': phone,
+            'position': position,
+            'linkedin': linkedin,
+            'github': github,
+            'coverLetter': coverLetter,
+            'skills': skills,
+            'experiences': experiences,
+            'projects': projects,
+            'educations': educations,
+            'resume_filename': filename,
+            'certifications': certifications
+        }
+
+        result = resume_collection.insert_one(interview_data)
+        user_id = str(result.inserted_id)
+
+        user_data = resume_collection.find_one({'_id': result.inserted_id})
+        user_data['_id'] = str(user_data['_id'])  # Convert ObjectId to string
+
+        return jsonify({
+            'success': True, 
+            'message': 'Interview submission successful.',
+            'user_id': user_id,
+            'userData': user_data
+        })
+
+    except json.JSONDecodeError as e:
+        print(f"JSON decoding error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Invalid JSON data.', 'error': str(e)}), 400
+    except Exception as e:
+        print(f"Error during interview submission: {str(e)}")
+        return jsonify({'success': False, 'message': 'Error during interview submission.', 'error': str(e)}), 500
+
+
 @app.route('/api/user/<user_id>', methods=['GET'])
 def get_user_data(user_id):
     try:
@@ -95,7 +196,7 @@ def get_user_data(user_id):
 
         if user_data:
             user_data['_id'] = str(user_data['_id'])
-            user_data.pop('password', None)  # Remove password from the response
+            user_data.pop('password', None)  
             return jsonify(user_data)
         else:
             return jsonify({'error': 'User not found'}), 404
@@ -112,7 +213,6 @@ def get_job_openings():
         job_openings = list(job_openings_collection.find())
         for job in job_openings:
             job['_id'] = str(job['_id'])
-            # Count the number of applicants for this job
             applicant_count = application_collection.count_documents({'jobId': str(job['_id'])})
             job['applicantCount'] = applicant_count
         return jsonify(job_openings), 200
@@ -353,7 +453,7 @@ def score_candidate(job_id, candidate_email):
         print(f"Error in score_candidate: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
-        
+
 def parse_scores(match_result):
     # Helper function to parse scores from the match_result string
     scores = {}

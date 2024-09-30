@@ -94,7 +94,7 @@ function LoginForm({ onAlternateLoginSuccess, darkMode }) {
     <section className={`${darkMode ? 'bg-dark-background' : 'bg-light-background'} min-h-screen`}>
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto min-h-screen lg:py-0">
         <a href="#" className={`flex items-center mb-6 text-2xl font-semibold ${darkMode ? 'text-dark-text' : 'text-light-text'}`}>
-          Interview
+          InterviewAssist
         </a>
         <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'} w-full rounded-lg shadow border md:mt-0 sm:max-w-md xl:p-0`}>
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">

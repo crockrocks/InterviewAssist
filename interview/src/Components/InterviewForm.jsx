@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import {useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaLinkedin, FaGithub, FaFileUpload } from 'react-icons/fa';
-import axios from 'axios'; 
+import axios from 'axios';
 import {
   Card,
   CardHeader,
@@ -24,14 +24,31 @@ const ExperienceCard = ({ experience, onEdit, onDelete, darkMode }) => {
           {isEditing ? 'Edit Experience' : experience.company || 'New Experience'}
         </h3>
         <div>
-          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
+          <Button
+            type="button" // Add this line
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault(); // Add this line
+              setIsEditing(!isEditing);
+            }}
+          >
             <FaEdit />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onDelete}>
+          <Button
+            type="button" // Add this line
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault(); // Add this line
+              onDelete();
+            }}
+          >
             <FaTrash />
           </Button>
         </div>
       </CardHeader>
+
       <CardContent>
         <div className="space-y-2">
           <Input
@@ -65,10 +82,26 @@ const EducationCard = ({ education, onEdit, onDelete, darkMode }) => {
           {isEditing ? 'Edit Education' : education.institution || 'New Education'}
         </h3>
         <div>
-          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
+          <Button
+            type="button" // Add this line
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault(); // Add this line
+              setIsEditing(!isEditing);
+            }}
+          >
             <FaEdit />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onDelete}>
+          <Button
+            type="button" // Add this line
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault(); // Add this line
+              onDelete();
+            }}
+          >
             <FaTrash />
           </Button>
         </div>
@@ -154,9 +187,9 @@ const SkillsCard = ({ skills, availableSkills, onAddSkill, onRemoveSkill }) => {
           {skills.map((skill, index) => (
             <div key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center">
               {skill}
-              <button 
-                type="button" 
-                onClick={() => onRemoveSkill(skill)} 
+              <button
+                type="button"
+                onClick={() => onRemoveSkill(skill)}
                 className="ml-2 text-red-500">
                 &times;
               </button>
@@ -175,9 +208,9 @@ const SkillsCard = ({ skills, availableSkills, onAddSkill, onRemoveSkill }) => {
               <option key={index} value={skill} />
             ))}
           </datalist>
-          <Button 
-            type="button" 
-            onClick={handleAddSkill} 
+          <Button
+            type="button"
+            onClick={handleAddSkill}
             className="ml-2">
             <FaPlus />
           </Button>
@@ -230,7 +263,8 @@ function InterviewForm({ darkMode, onLogout }) {
     }));
   };
 
-  const addExperience = () => {
+  const addExperience = (e) => {
+    e.preventDefault(); // Prevent form submission
     setFormData(prev => ({
       ...prev,
       experiences: [...prev.experiences, { company: '', duration: '', responsibilities: [''] }]
@@ -251,12 +285,15 @@ function InterviewForm({ darkMode, onLogout }) {
     }));
   };
 
-  const addEducation = () => {
+  const addEducation = (e) => {
+    e.preventDefault(); // Prevent form submission
     setFormData(prev => ({
       ...prev,
       educations: [...prev.educations, { institution: '', degree: '', year: '' }]
     }));
   };
+
+
 
   const editEducation = (index, updatedEducation) => {
     setFormData(prev => ({
@@ -272,7 +309,8 @@ function InterviewForm({ darkMode, onLogout }) {
     }));
   };
 
-  const addProject = () => {
+  const addProject = (e) => {
+    e.preventDefault(); // Prevent form submission
     setFormData(prev => ({
       ...prev,
       projects: [...prev.projects, { name: '', details: [''] }]
@@ -299,17 +337,17 @@ function InterviewForm({ darkMode, onLogout }) {
       setLoading(true);
       const formData = new FormData();
       formData.append('resume', file);
-  
+
       try {
         const response = await axios.post('http://localhost:5000/api/parse-resume', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
-  
+
         if (response.data && response.data.success) {
           const parsedData = response.data.parsed_data;
-          
+
           setFormData(prev => ({
             ...prev,
             name: parsedData.name || '',
@@ -319,31 +357,31 @@ function InterviewForm({ darkMode, onLogout }) {
             linkedin: parsedData.linkedin_url || '',
             github: parsedData.github_url || '',
             skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
-            experiences: Array.isArray(parsedData.experiences) 
+            experiences: Array.isArray(parsedData.experiences)
               ? parsedData.experiences.map(exp => ({
-                  company: exp.company || '',
-                  duration: exp.duration || '',
-                  responsibilities: Array.isArray(exp.responsibilities) ? exp.responsibilities : []
-                }))
+                company: exp.company || '',
+                duration: exp.duration || '',
+                responsibilities: Array.isArray(exp.responsibilities) ? exp.responsibilities : []
+              }))
               : [],
             educations: Array.isArray(parsedData.education)
               ? parsedData.education.map(edu => ({
-                  institution: edu.institution || '',
-                  degree: edu.degree || '',
-                  year: edu.year || ''
-                }))
+                institution: edu.institution || '',
+                degree: edu.degree || '',
+                year: edu.year || ''
+              }))
               : [],
             projects: Array.isArray(parsedData.projects)
               ? parsedData.projects.map(proj => ({
-                  name: proj.name || '',
-                  details: Array.isArray(proj.details) ? proj.details : []
-                }))
+                name: proj.name || '',
+                details: Array.isArray(proj.details) ? proj.details : []
+              }))
               : [],
             certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications.join('\n') : '',
             coverLetter: parsedData.cover_letter || '',
             resume: file,
           }));
-  
+
           console.log('Form data updated with parsed resume data:', parsedData);
         } else {
           console.error('Failed to parse resume:', response.data);
@@ -361,36 +399,36 @@ function InterviewForm({ darkMode, onLogout }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-  
+
     const submitFormData = new FormData();
-  
+
     const basicFields = ['name', 'email', 'phone', 'position', 'linkedin', 'github', 'coverLetter'];
     basicFields.forEach(field => {
       submitFormData.append(field, formData[field] || '');
     });
-  
+
     const arrayFields = ['skills', 'experiences', 'projects', 'educations'];
     arrayFields.forEach(field => {
       submitFormData.append(field, JSON.stringify(formData[field] || []));
     });
-  
+
     submitFormData.append('certifications', JSON.stringify(formData.certifications.split('\n').filter(cert => cert.trim() !== '')));
-  
+
     if (formData.resume) {
       submitFormData.append('resume', formData.resume);
     }
-  
+
     try {
       const response = await axios.post('http://localhost:5000/api/submit-interview', submitFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-  
+
       if (response.data.success) {
         localStorage.setItem('userResumeData', JSON.stringify(response.data.userData));
         alert('Form submitted successfully!');
-        navigate(`/dashboard/${response.data.user_id}`);
+        navigate(`/`);
       } else {
         alert('Failed to submit form. Please try again.');
       }
@@ -401,7 +439,7 @@ function InterviewForm({ darkMode, onLogout }) {
       setLoading(false);
     }
   };
- 
+
   return (
     <section className={`${darkMode ? 'bg-gray-900' : 'bg-gray-50'} min-h-screen py-12`}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
@@ -566,7 +604,6 @@ function InterviewForm({ darkMode, onLogout }) {
 
               <Separator className="my-8" />
 
-              {/* Experience Section */}
               <div>
                 <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Professional Experience</h2>
                 {Array.isArray(formData.experiences) && formData.experiences.map((experience, index) => (
@@ -579,7 +616,7 @@ function InterviewForm({ darkMode, onLogout }) {
                   />
                 ))}
                 <div className="flex justify-center mt-4">
-                  <Button onClick={addExperience} variant="outline" className="w-full sm:w-auto">
+                  <Button onClick={addExperience} type="button" variant="outline" className="w-full sm:w-auto">
                     <FaPlus className="mr-2" /> Add Experience
                   </Button>
                 </div>
@@ -600,7 +637,7 @@ function InterviewForm({ darkMode, onLogout }) {
                   />
                 ))}
                 <div className="flex justify-center mt-4">
-                  <Button onClick={addEducation} variant="outline" className="w-full sm:w-auto">
+                  <Button onClick={addEducation} type="button" variant="outline" className="w-full sm:w-auto">
                     <FaPlus className="mr-2" /> Add Education
                   </Button>
                 </div>
@@ -621,7 +658,7 @@ function InterviewForm({ darkMode, onLogout }) {
                   />
                 ))}
                 <div className="flex justify-center mt-4">
-                  <Button onClick={addProject} variant="outline" className="w-full sm:w-auto">
+                  <Button onClick={addProject} type="button" variant="outline" className="w-full sm:w-auto">
                     <FaPlus className="mr-2" /> Add Project
                   </Button>
                 </div>
