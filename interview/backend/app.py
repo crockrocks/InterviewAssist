@@ -196,7 +196,14 @@ def get_user_data(user_id):
 
         if user_data:
             user_data['_id'] = str(user_data['_id'])
-            user_data.pop('password', None)  
+            user_data.pop('password', None)
+
+            # Fetch additional data from resume_collection
+            resume_data = resume_collection.find_one({'email': user_data['email']})
+            if resume_data:
+                user_data['phone'] = resume_data.get('phone')
+                user_data['position'] = resume_data.get('position')
+
             return jsonify(user_data)
         else:
             return jsonify({'error': 'User not found'}), 404

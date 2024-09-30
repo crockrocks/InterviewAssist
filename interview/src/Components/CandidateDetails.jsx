@@ -4,6 +4,7 @@ import { ArrowLeft, Check, X, Calendar, Mail, Phone, Github, Linkedin, ChevronDo
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopExpertsDisplay from './TopExperts';
+import ScoreDisplay from './ScoreDisplay';
 
 const Button = ({ children, variant = 'primary', onClick, className = '' }) => {
     const baseClasses = 'px-3 py-2 rounded-md font-medium focus:outline-none transition-colors duration-200';
@@ -69,7 +70,7 @@ const ExpandableSection = ({ title, content }) => {
     );
 }
 
-const CandidateCard = ({ candidate, jobId, onSelect, onReject, onSchedule }) => {
+const CandidateCard = ({ candidate, jobId, onSelect, onReject, onSchedule,darkMode}) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [scoreData, setScoreData] = useState(null);
     const [topExperts, setTopExperts] = useState([]);
@@ -87,6 +88,12 @@ const CandidateCard = ({ candidate, jobId, onSelect, onReject, onSchedule }) => 
             setIsLoading(false);
         }
     };
+    const ensureAbsoluteUrl = (url) => {
+        if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+          return `https://${url}`;
+        }
+        return url;
+      };
 
     useEffect(() => {
         fetchScoreData();
@@ -113,12 +120,12 @@ const CandidateCard = ({ candidate, jobId, onSelect, onReject, onSchedule }) => 
                         <Phone size={16} className="mr-1" /> Call
                     </a>
                     {candidate.resumeData?.github && (
-                        <a href={candidate.resumeData.github} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center dark:text-blue-400">
+                        <a href={ensureAbsoluteUrl(candidate.resumeData.github)} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center dark:text-blue-400">
                             <Github size={16} className="mr-1" /> GitHub
                         </a>
                     )}
                     {candidate.resumeData?.linkedin && (
-                        <a href={candidate.resumeData.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center dark:text-blue-400">
+                        <a href={ensureAbsoluteUrl(candidate.resumeData.linkedin)} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center dark:text-blue-400">
                             <Linkedin size={16} className="mr-1" /> LinkedIn
                         </a>
                     )}
@@ -136,10 +143,7 @@ const CandidateCard = ({ candidate, jobId, onSelect, onReject, onSchedule }) => 
             ) : scoreData ? (
                 <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-md">
                     <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Match Scores</h4>
-                    {/* <p className="text-sm text-gray-700 dark:text-gray-300">Matching Similarity Score: {scoreData['Matching Similarity Score']}/100</p> */}
-                    <p className="text-sm text-gray-700 dark:text-gray-300">Relevancy Score: {scoreData['Relevancy Score']}/100</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">Profile Score: {scoreData['Profile Score']}/100</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">Overall Score: {scoreData['Overall Score']}/100</p>
+                    <ScoreDisplay scoreData={scoreData} isLoading={false} darkMode={darkMode} />
                 </div>
             ) : null}
 
