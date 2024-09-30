@@ -5,9 +5,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 import os
 import json
+import traceback
 from bson import ObjectId
 from bson.errors import InvalidId
 from datetime import datetime
+from score import summary_match
 
 app = Flask(__name__)
 CORS(app)
@@ -26,6 +28,7 @@ users_collection = db['User']
 resume_collection = db['UserResume']
 job_openings_collection = db['JobOpening']
 application_collection = db['application']
+employee_collection = db['Employee']
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -286,6 +289,121 @@ def get_user_resume():
             return jsonify({'error': 'User resume not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/score-candidate/<job_id>/<candidate_email>', methods=['GET'])
+def score_candidate(job_id, candidate_email):
+    try:
+        # Log the incoming request
+        print(f"Received request for job_id: {job_id}, candidate_email: {candidate_email}")
+
+        # Fetch job details
+        job = job_openings_collection.find_one({'_id': ObjectId(job_id)})
+        if not job:
+            print(f"Job not found for id: {job_id}")
+            return jsonify({'error': 'Job not found'}), 404
+        
+        print(f"Job found: {job['title']}")
+
+        # Fetch candidate resume
+        candidate_resume = resume_collection.find_one({'email': candidate_email})
+        if not candidate_resume:
+            print(f"Candidate resume not found for email: {candidate_email}")
+            return jsonify({'error': 'Candidate resume not found'}), 404
+        
+        print(f"Candidate resume found for: {candidate_resume['name']}")
+
+        # Use the full description from the job posting
+        job_description = job['fullDescription']
+        
+        # Get all experts from the Employee collection
+        experts = list(employee_collection.find())
+        print(f"Found {len(experts)} experts")
+
+        # Calculate match result for each expert
+        expert_results = []
+        for expert in experts:
+            try:
+                match_result = summary_match(candidate_resume, job_description, expert)
+                scores = parse_scores(match_result)
+                expert_results.append({
+                    'name': expert['name'],
+                    'position': expert['position'],
+                    'score': scores.get('Overall Score', 0)
+                })
+            except Exception as e:
+                print(f"Error calculating match for expert {expert['name']}: {str(e)}")
+
+        # Sort experts by score and get top 5
+        top_experts = sorted(expert_results, key=lambda x: x['score'], reverse=True)[:5]
+        
+        # Calculate final match result using the candidate's resume and job description
+        final_match_result = summary_match(candidate_resume, job_description, None)
+        final_scores = parse_scores(final_match_result)
+        
+        response_data = {
+            'matchResult': final_scores,
+            'candidateName': candidate_resume['name'],
+            'jobTitle': job['title'],
+            'topExperts': top_experts
+        }
+        print("Successfully calculated scores and experts")
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        print(f"Error in score_candidate: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+        
+def parse_scores(match_result):
+    # Helper function to parse scores from the match_result string
+    scores = {}
+    for line in match_result.split('\n'):
+        if ':' in line:
+            key, value = line.split(':')
+            try:
+                scores[key.strip()] = float(value.strip().split('/')[0])
+            except ValueError:
+                print(f"Error parsing score: {line}")
+    return scores
+
+@app.route('/api/top-experts/<job_id>/<candidate_email>', methods=['GET'])
+def get_top_experts(job_id, candidate_email):
+    try:
+        # Fetch job details
+        job = job_openings_collection.find_one({'_id': ObjectId(job_id)})
+        if not job:
+            return jsonify({'error': 'Job not found'}), 404
+
+        # Fetch candidate resume
+        candidate_resume = resume_collection.find_one({'email': candidate_email})
+        if not candidate_resume:
+            return jsonify({'error': 'Candidate resume not found'}), 404
+
+        # Fetch all experts
+        experts = list(employee_collection.find())
+
+        # Calculate scores for each expert
+        expert_scores = []
+        for expert in experts:
+            expert_profile = f"Name: {expert['name']}, Position: {expert['position']}, Skills: {', '.join(expert['skills'])}"
+            match_result = summary_match(candidate_resume['skills'], job['fullDescription'], expert_profile)
+            
+            # Parse the overall score from the match_result
+            overall_score = float(match_result.split('Overall Score: ')[1].split('/')[0])
+            
+            expert_scores.append({
+                'name': expert['name'],
+                'score': overall_score,
+                'position': expert['position']
+            })
+
+        top_experts = nlargest(5, expert_scores, key=lambda x: x['score'])
+
+        return jsonify(top_experts), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
