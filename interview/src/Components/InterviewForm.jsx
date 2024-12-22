@@ -36,7 +36,7 @@ const ExperienceCard = ({ experience, onEdit, onDelete, darkMode }) => {
             <FaEdit />
           </Button>
           <Button
-            type="button" // Add this line
+            type="button"
             variant="ghost"
             size="icon"
             onClick={(e) => {
@@ -350,36 +350,36 @@ function InterviewForm({ darkMode, onLogout }) {
 
           setFormData(prev => ({
             ...prev,
-            name: parsedData.name || '',
-            email: parsedData.email || '',
-            phone: parsedData.phone || '',
-            position: parsedData.position || '',
-            linkedin: parsedData.linkedin_url || '',
-            github: parsedData.github_url || '',
-            skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
-            experiences: Array.isArray(parsedData.experiences)
-              ? parsedData.experiences.map(exp => ({
-                company: exp.company || '',
-                duration: exp.duration || '',
-                responsibilities: Array.isArray(exp.responsibilities) ? exp.responsibilities : []
+            name: parsedData.Name || '',
+            email: parsedData.Email || '',
+            phone: parsedData.Phone || '',
+            position: parsedData.Position || '',
+            linkedin: parsedData['LinkedIn URL'] || '',
+            github: parsedData['GitHub URL'] || '',
+            skills: Array.isArray(parsedData.Skills) ? parsedData.Skills : [],
+            experiences: Array.isArray(parsedData.Experiences)
+              ? parsedData.Experiences.map(exp => ({
+                company: exp.Company || '',
+                duration: exp.Duration || '',
+                responsibilities: Array.isArray(exp.Responsibilities) ? exp.Responsibilities : []
               }))
               : [],
-            educations: Array.isArray(parsedData.education)
-              ? parsedData.education.map(edu => ({
-                institution: edu.institution || '',
-                degree: edu.degree || '',
-                year: edu.year || ''
+            educations: Array.isArray(parsedData.Education)
+              ? parsedData.Education.map(edu => ({
+                institution: edu.Institution || '',
+                degree: edu.Degree || '',
+                year: edu.Year || ''
               }))
               : [],
-            projects: Array.isArray(parsedData.projects)
-              ? parsedData.projects.map(proj => ({
-                name: proj.name || '',
-                details: Array.isArray(proj.details) ? proj.details : []
-              }))
+              projects: Array.isArray(parsedData.Projects)
+              ? parsedData.Projects.map(proj => ({
+                  name: proj.Name || '',
+                  details: Array.isArray(proj.Details) ? proj.Details : [proj.Details || '']
+                }))
               : [],
-            certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications.join('\n') : '',
-            coverLetter: parsedData.cover_letter || '',
-            resume: file,
+            certifications: parsedData.Certifications || '',
+            coverLetter: parsedData['Cover Letter'] || '',
+            resume: file
           }));
 
           console.log('Form data updated with parsed resume data:', parsedData);

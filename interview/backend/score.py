@@ -43,9 +43,7 @@ def summary_and_scores():
     Overall Score: O/100
 
     Additionally, provide a brief explanation (2-3 sentences) detailing why the candidate is a good fit for the job, emphasizing the alignment of technical and soft skills with both the job description and the expert's domain.
-
     Finally, recommend which expert interview should be scheduled based on the candidate's profile and the expert's expertise.
-
     Return only the Matching Similarity Score, Relevancy Score, Profile Score, Overall Score, the recommendation, and the overall brief summary of why the candidate is good for the job.
     """
     return PromptTemplate(

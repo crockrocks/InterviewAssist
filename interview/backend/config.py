@@ -6,7 +6,7 @@ load_dotenv()
 class Config:
     MONGO_URI = os.environ.get('MONGO_URI')
     DB_NAME = "SIH"
-    COLLECTION_NAME = "Interview"
+    COLLECTION_NAME = "UserResume"
     UPLOAD_FOLDER = 'uploads'
     GROQ_AI_KEY = os.environ.get('GROQ_AI_KEY')
 

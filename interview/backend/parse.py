@@ -70,7 +70,7 @@ def create_prompt_template():
 def initialize_llm_chain(llm, prompt_template):
     return LLMChain(llm=llm, prompt=prompt_template, verbose=True)
 
-import re
+
 
 def parse_resume(text):
     llm = initialize_llm()

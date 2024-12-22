@@ -4,6 +4,7 @@ import json
 import re
 import pymongo
 import os
+import sys
 from bson import ObjectId
 from config import Config
 from langchain_groq import ChatGroq
@@ -12,7 +13,7 @@ from langchain_groq import ChatGroq
 def initialize_llm():
     os.environ["GROQ_API_KEY"] = Config.GROQ_AI_KEY
     return ChatGroq(
-        model="llama-3.1-70b-versatile",
+        model="mixtral-8x7b-32768",
         temperature=0,
         max_tokens=None,
         timeout=None,
@@ -105,3 +106,37 @@ def get_candidate_data(query):
     candidate_data = collection.find_one(query)
     return candidate_data
 
+def main():
+    """
+    Main function to generate a technical summary for a candidate.
+    
+    Expected inputs:
+    1. Command-line argument specifying the query field (e.g., 'name')
+    2. Command-line argument specifying the query value (e.g., 'John Doe')
+    
+    Usage example:
+    python script.py name "John Doe"
+    """
+
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <query_field> <query_value>")
+        sys.exit(1)
+    query_field = sys.argv[1]
+    query_value = sys.argv[2]
+    query = {query_field: query_value}
+    
+    try:
+        candidate_data = get_candidate_data(query)
+        if not candidate_data:
+            print(f"No candidate found with {query_field}: {query_value}")
+            sys.exit(1)
+        summary = generate_summary(candidate_data)
+        print("Candidate Technical Summary:")
+        print(summary)
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

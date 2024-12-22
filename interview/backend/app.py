@@ -442,8 +442,7 @@ def score_candidate(job_id, candidate_email):
 
         # Sort experts by score and get top 5
         top_experts = sorted(expert_results, key=lambda x: x['score'], reverse=True)[:5]
-        
-        # Calculate final match result using the candidate's resume and job description
+
         final_match_result = summary_match(candidate_resume, job_description, None)
         final_scores = parse_scores(final_match_result)
         
